@@ -36,6 +36,11 @@ struct Program
     u64                lastWriteTimestamp; // What is this for?
 };
 
+struct VertexV3V2 {
+    vec3 pos;
+    vec2 uv;
+};
+
 enum Mode
 {
     Mode_TexturedQuad,
