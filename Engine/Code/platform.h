@@ -5,7 +5,10 @@
 
 #pragma once
 
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif // !_CRT_SECURE_NO_WARNINGS
+
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
@@ -90,7 +93,7 @@ void LogString(const char* str);
 #define ILOG(...)                 \
 {                                 \
 char logBuffer[1024] = {};        \
-sprintf(logBuffer, __VA_ARGS__);  \
+sprintf_s(logBuffer, __VA_ARGS__);  \
 LogString(logBuffer);             \
 }
 

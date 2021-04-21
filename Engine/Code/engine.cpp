@@ -10,6 +10,8 @@
 #include <stb_image.h>
 #include <stb_image_write.h>
 
+#include "assimp_model_loading.h"
+
 GLuint CreateProgramFromSource(String programSource, const char* shaderName)
 {
     GLchar  infoLogBuffer[1024] = {};
@@ -157,7 +159,7 @@ u32 LoadTexture2D(App* app, const char* filepath)
     for (u32 texIdx = 0; texIdx < app->textures.size(); ++texIdx)
         if (app->textures[texIdx].filepath == filepath)
             return texIdx;
-
+    
     Image image = LoadImage(filepath);
 
     if (image.pixels)
@@ -221,6 +223,13 @@ void Init(App* app)
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
     app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
 
+    app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH");
+    Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
+    app->texturedMeshProgramIdx_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
+    texturedMeshProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
+    texturedMeshProgram.vertexInputLayout.attributes.push_back({ 2, 2 });
+    
+
     // - textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
     app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
@@ -228,7 +237,9 @@ void Init(App* app)
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-    app->mode = Mode_TexturedQuad;
+    app->model = LoadModel(app, "Patrick/Patrick.obj");
+
+    app->mode = Mode::Mode_Patrick;
 }
 
 void Gui(App* app)
@@ -253,6 +264,51 @@ void Update(App* app)
             program.lastWriteTimestamp = currentTimestamp;
         }
     }
+}
+
+GLuint FindVAO(Mesh& mesh, u32 submeshIndex, const Program& program) {
+    Submesh& submesh = mesh.submeshes[submeshIndex];
+
+    for (u32 i = 0; i < (u32)submesh.vaos.size(); ++i)
+        if (submesh.vaos[i].programHandle == program.handle)
+            return submesh.vaos[i].handle;
+
+    GLuint vaoHandle = 0;
+
+    //Create a new vao for this submesh/program
+    {
+        glGenVertexArrays(1, &vaoHandle);
+        glBindVertexArray(vaoHandle);
+
+        glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexBufferHandle);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexBufferHandle);
+
+        for (u32 i = 0; i < program.vertexInputLayout.attributes.size(); ++i) {
+            bool attributeWasLinked = false;
+
+            for (u32 j = 0; j < submesh.vertexBufferLayout.attributes.size(); ++j) {
+                if (program.vertexInputLayout.attributes[i].location != submesh.vertexBufferLayout.attributes[j].location)
+                    continue;
+                const u32 index = submesh.vertexBufferLayout.attributes[j].location;
+                const u32 ncomp = submesh.vertexBufferLayout.attributes[j].componentCount;
+                const u32 offset = submesh.vertexBufferLayout.attributes[j].offset + submesh.vertexOffset;
+                const u32 stride = submesh.vertexBufferLayout.stride;
+                glVertexAttribPointer(index, ncomp, GL_FLOAT, GL_FALSE, stride, (void*)offset);
+                glEnableVertexAttribArray(index);
+
+                attributeWasLinked = true;
+                break;
+            }
+            assert(attributeWasLinked);
+        }
+
+        glBindVertexArray(0);
+    }
+
+    Vao vao = { vaoHandle, program.handle };
+    submesh.vaos.push_back(vao);
+
+    return vaoHandle;
 }
 
 void Render(App* app)
@@ -294,6 +350,30 @@ void Render(App* app)
         glUseProgram(0);
     }
     break;
+    case Mode_Patrick: {
+        Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
+        glUseProgram(texturedMeshProgram.handle);
+
+        Model& model = app->models[app->model];
+        Mesh& mesh = app->meshes[model.meshIdx];
+
+        for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
+            GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
+            glBindVertexArray(vao);
+
+            u32 submeshMaterialIdx = model.materialIdx[i];
+            Material& submeshmaterial = app->materials[submeshMaterialIdx];
+
+            glActiveTexture(GL_TEXTURE);
+            glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
+            glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+
+            Submesh& submesh = mesh.submeshes[i];
+            glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
+        }
+
+        break;
+    }
 
     default:
         break;
