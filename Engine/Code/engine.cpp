@@ -251,6 +251,14 @@ void Gui(App* app)
 
     ImGui::Separator();
 
+    ImGui::Text("OpenGL Info");
+    ImGui::Text((const char*)glGetString(GL_VENDOR));
+    ImGui::Text((const char*)glGetString(GL_RENDERER));
+    ImGui::Text((const char*)glGetString(GL_VERSION));
+    ImGui::Text((const char*)glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+    ImGui::Separator();
+
     ImGui::Text("Camera");
     ImGui::DragFloat("DistanceToOrigin", &app->camera.distanceToOrigin, 0.15f);
     ImGui::SliderFloat("phi", &app->camera.phi, 0.1f, 179.f, "%.1f");
