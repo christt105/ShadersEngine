@@ -37,13 +37,15 @@ void main() {
 layout(location=0) in vec3 aPos;
 layout(location=2) in vec2 aTexCoord;
 
+uniform mat4 uWorldMatrix;
+uniform mat4 uWorldViewProjectionMatrix;
+
 out vec2 vTexCoord;
 
 void main() {
 	float clippingScale = 5.0;
 
-	gl_Position = vec4(aPos, clippingScale);
-	gl_Position.z = -gl_Position.z;
+	gl_Position = uWorldViewProjectionMatrix * vec4(aPos, clippingScale);
 
 	vTexCoord = aTexCoord;
 }

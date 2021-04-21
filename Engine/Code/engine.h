@@ -109,6 +109,27 @@ enum Mode
     Mode_Count
 };
 
+
+struct Camera {
+    enum CameraMode {
+        FPS,
+        ORBIT
+    };
+    CameraMode mode = ORBIT;
+
+    float distanceToOrigin = 2.f;
+    float phi{ 90.f }, theta{ 90.f };
+
+    glm::mat4 GetViewMatrix(const vec2& size) {
+        // Make sure that: 0 < phi < 3.14
+        float Phi = glm::radians(phi);
+        float Theta = glm::radians(theta);
+        vec3 pos = { distanceToOrigin * sin(Phi) * cos(Theta), distanceToOrigin * cos(Phi), distanceToOrigin * sin(Phi) * sin(Theta) };
+
+        return glm::perspective(glm::radians(60.f), size.x / size.y, 0.1f, 100.f) * glm::lookAt(pos, vec3(0.f), vec3(0.f, 1.f, 0.f));
+    }
+};
+
 struct App
 {
     // Loop
@@ -146,6 +167,8 @@ struct App
     // Location of the texture uniform in the textured quad shader
     GLuint programUniformTexture;
     GLuint texturedMeshProgramIdx_uTexture;
+    GLuint texturedMeshProgramIdx_uViewProjection;
+    GLuint texturedMeshProgramIdx_uWorldMatrix;
 
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
@@ -157,6 +180,8 @@ struct App
     std::vector<Mesh> meshes;
     std::vector<Model> models;
     std::vector<Program> programs;
+
+    Camera camera;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);

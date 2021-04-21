@@ -226,6 +226,8 @@ void Init(App* app)
     app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH");
     Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
     app->texturedMeshProgramIdx_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
+    app->texturedMeshProgramIdx_uViewProjection = glGetUniformLocation(texturedMeshProgram.handle, "uWorldViewProjectionMatrix");
+    app->texturedMeshProgramIdx_uWorldMatrix = glGetUniformLocation(texturedMeshProgram.handle, "uWorldMatrix");
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 2, 2 });
     
@@ -246,6 +248,14 @@ void Gui(App* app)
 {
     ImGui::Begin("Info");
     ImGui::Text("FPS: %f", 1.0f/app->deltaTime);
+
+    ImGui::Separator();
+
+    ImGui::Text("Camera");
+    ImGui::DragFloat("DistanceToOrigin", &app->camera.distanceToOrigin, 0.15f);
+    ImGui::SliderFloat("phi", &app->camera.phi, 0.1f, 179.f, "%.1f");
+    ImGui::SliderFloat("theta", &app->camera.theta, 0.f, 360.f);
+
     ImGui::End();
 }
 
@@ -264,6 +274,8 @@ void Update(App* app)
             program.lastWriteTimestamp = currentTimestamp;
         }
     }
+
+
 }
 
 GLuint FindVAO(Mesh& mesh, u32 submeshIndex, const Program& program) {
@@ -313,11 +325,6 @@ GLuint FindVAO(Mesh& mesh, u32 submeshIndex, const Program& program) {
 
 void Render(App* app)
 {
-    switch (app->mode)
-    {
-    case Mode_TexturedQuad:
-    {
-        // TODO: Draw your textured quad here!
         // - clear the framebuffer
         glClearColor(0.2f, 0.2f, 0.2f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -328,6 +335,13 @@ void Render(App* app)
         // - set the blending state
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glEnable(GL_DEPTH_TEST);
+    switch (app->mode)
+    {
+    case Mode_TexturedQuad:
+    {
+        // TODO: Draw your textured quad here!
 
         // - bind the texture into unit 0
         glUniform1i(app->programUniformTexture, 0);
@@ -357,6 +371,9 @@ void Render(App* app)
         Model& model = app->models[app->model];
         Mesh& mesh = app->meshes[model.meshIdx];
 
+        glUniformMatrix4fv(app->texturedMeshProgramIdx_uViewProjection, 1, GL_FALSE, &app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y })[0][0]);
+        //glUniformMatrix4fv(app->texturedMeshProgramIdx_uWorldMatrix, 1, GL_FALSE, &[0][0]);
+
         for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
             GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
             glBindVertexArray(vao);
@@ -371,10 +388,8 @@ void Render(App* app)
             Submesh& submesh = mesh.submeshes[i];
             glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
         }
-
         break;
     }
-
     default:
         break;
     }
