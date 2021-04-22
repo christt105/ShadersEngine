@@ -229,6 +229,7 @@ void Init(App* app)
     app->texturedMeshProgramIdx_uViewProjection = glGetUniformLocation(texturedMeshProgram.handle, "uWorldViewProjectionMatrix");
     app->texturedMeshProgramIdx_uWorldMatrix = glGetUniformLocation(texturedMeshProgram.handle, "uWorldMatrix");
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
+    texturedMeshProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 2, 2 });
     
 
