@@ -45,9 +45,8 @@ out vec2 vTexCoord;
 out vec3 vNormals;
 
 void main() {
-	float clippingScale = 5.0;
 
-	gl_Position = uWorldViewProjectionMatrix * vec4(aPos, clippingScale);
+	gl_Position = uWorldViewProjectionMatrix * uWorldMatrix * vec4(aPos, 1.0);
 	vNormals = aNormals;
 	vTexCoord = aTexCoord;
 }
@@ -63,7 +62,7 @@ layout(location = 0) out vec4 oColor;
 
 void main() {
 	oColor = texture(uTexture, vTexCoord);
-	oColor = vec4(vNormals, 1.0);
+	//oColor = vec4(vNormals, 1.0);
 }
 
 #endif
