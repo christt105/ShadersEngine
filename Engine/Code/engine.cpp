@@ -240,7 +240,11 @@ void Init(App* app)
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-    app->model = LoadModel(app, "Patrick/Patrick.obj");
+    u32 pat = LoadModel(app, "Patrick/Patrick.obj");
+
+    app->entities.push_back(Entity(glm::mat4(1.f), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(5.f, 0.f, -4.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-5.f, 0.f, -2.f)), pat));
 
     app->mode = Mode::Mode_Patrick;
 }
@@ -377,15 +381,13 @@ void Render(App* app)
         Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
         glUseProgram(texturedMeshProgram.handle);
 
-        Model& model = app->models[app->model];
-        Mesh& mesh = app->meshes[model.meshIdx];
+        for (auto& e : app->entities) {
+            Model& model = app->models[e.model];
+            Mesh& mesh = app->meshes[model.meshIdx];
 
-        glUniformMatrix4fv(app->texturedMeshProgramIdx_uViewProjection, 1, GL_FALSE, &app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y })[0][0]);
-        //glUniformMatrix4fv(app->texturedMeshProgramIdx_uWorldMatrix, 1, GL_FALSE, &[0][0]);
+            glUniformMatrix4fv(app->texturedMeshProgramIdx_uViewProjection, 1, GL_FALSE, &app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y })[0][0]);
 
-        for (int m = 0; m < 3; ++m) {
-            auto mat = glm::translate(glm::mat4(1.f), glm::vec3(m, 0.f, 0.f));
-            glUniformMatrix4fv(app->texturedMeshProgramIdx_uWorldMatrix, 1, GL_FALSE, glm::value_ptr(mat));
+            glUniformMatrix4fv(app->texturedMeshProgramIdx_uWorldMatrix, 1, GL_FALSE, glm::value_ptr(e.mat));
             for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
                 GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
                 glBindVertexArray(vao);

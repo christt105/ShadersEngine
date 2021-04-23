@@ -47,7 +47,7 @@ out vec3 vNormals;
 void main() {
 
 	gl_Position = uWorldViewProjectionMatrix * uWorldMatrix * vec4(aPos, 1.0);
-	vNormals = aNormals;
+	vNormals = mat3(transpose(inverse(uWorldMatrix))) * aNormals;
 	vTexCoord = aTexCoord;
 }
 

@@ -109,6 +109,13 @@ enum Mode
     Mode_Count
 };
 
+struct Entity {
+    glm::mat4 mat = glm::mat4(1.0f);
+    u32 model;
+
+    Entity(const glm::mat4& m, u32 mod) : mat(m), model(mod){}
+};
+
 
 struct Camera {
     enum CameraMode {
@@ -117,7 +124,7 @@ struct Camera {
     };
     CameraMode mode = ORBIT;
 
-    float distanceToOrigin = 2.f;
+    float distanceToOrigin = 12.f;
     float phi{ 90.f }, theta{ 90.f };
 
     glm::mat4 GetViewMatrix(const vec2& size) {
@@ -173,13 +180,13 @@ struct App
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
 
-    u32 model = 0u;
-
     std::vector<Texture> textures;
     std::vector<Material> materials;
     std::vector<Mesh> meshes;
     std::vector<Model> models;
     std::vector<Program> programs;
+
+    std::vector<Entity> entities;
 
     Camera camera;
 };
