@@ -246,6 +246,8 @@ void Init(App* app)
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(5.f, 0.f, -4.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-5.f, 0.f, -2.f)), pat));
 
+    app->lights.push_back(Light(LightType::LightType_Directional, vec3(1.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, -10.f, 0.f)));
+
     app->mode = Mode::Mode_Patrick;
 }
 
@@ -388,6 +390,15 @@ void Render(App* app)
             glUniformMatrix4fv(app->texturedMeshProgramIdx_uViewProjection, 1, GL_FALSE, &app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y })[0][0]);
 
             glUniformMatrix4fv(app->texturedMeshProgramIdx_uWorldMatrix, 1, GL_FALSE, glm::value_ptr(e.mat));
+
+            glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uCameraPos"), app->camera.pos.x, app->camera.pos.y, app->camera.pos.z);
+            //for (auto& light : app->lights)
+            //{
+                glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightColor"), app->lights[0].color.x, app->lights[0].color.y, app->lights[0].color.z);
+                glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightPos"), app->lights[0].position.x, app->lights[0].position.y, app->lights[0].position.z);
+
+            //}
+
             for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
                 GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
                 glBindVertexArray(vao);

@@ -41,6 +41,14 @@ struct Vao {
     GLuint programHandle;
 };
 
+struct Buffer {
+    GLuint  handle;
+    GLenum  type;
+    u32     size;
+    u32     head;
+    void*   data;
+};
+
 struct Model {
     u32 meshIdx;
     std::vector<u32> materialIdx;
@@ -116,6 +124,20 @@ struct Entity {
     Entity(const glm::mat4& m, u32 mod) : mat(m), model(mod){}
 };
 
+enum LightType
+{
+    LightType_Directional,
+    LightType_Point
+};
+
+struct Light
+{
+    LightType type;
+    vec3 color;
+    vec3 direction;
+    vec3 position;
+    Light(const LightType t, const vec3 c, vec3 dir, vec3 pos): type(t),color(c),direction(dir),position(pos){}
+};
 
 struct Camera {
     enum CameraMode {
@@ -126,12 +148,13 @@ struct Camera {
 
     float distanceToOrigin = 12.f;
     float phi{ 90.f }, theta{ 90.f };
+    vec3 pos;
 
     glm::mat4 GetViewMatrix(const vec2& size) {
         // Make sure that: 0 < phi < 3.14
         float Phi = glm::radians(phi);
         float Theta = glm::radians(theta);
-        vec3 pos = { distanceToOrigin * sin(Phi) * cos(Theta), distanceToOrigin * cos(Phi), distanceToOrigin * sin(Phi) * sin(Theta) };
+        pos = { distanceToOrigin * sin(Phi) * cos(Theta), distanceToOrigin * cos(Phi), distanceToOrigin * sin(Phi) * sin(Theta) };
 
         return glm::perspective(glm::radians(60.f), size.x / size.y, 0.1f, 100.f) * glm::lookAt(pos, vec3(0.f), vec3(0.f, 1.f, 0.f));
     }
@@ -189,6 +212,7 @@ struct App
     std::vector<Entity> entities;
 
     Camera camera;
+    std::vector<Light> lights;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);
