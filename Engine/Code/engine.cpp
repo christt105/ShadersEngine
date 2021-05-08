@@ -257,6 +257,7 @@ void Gui(App* app)
 {
     ImGui::Begin("Info");
     ImGui::Text("FPS: %f", 1.0f/app->deltaTime);
+    ImGui::Text("ImGui Version: %s", ImGui::GetVersion());
 
     ImGui::Separator();
 
@@ -425,6 +426,9 @@ void Render(App* app)
 
 void CheckOpenGLError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* msg, const void* userParam)
 {
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
+        return;
+
     std::string _source;
     std::string _type;
     std::string _severity;
