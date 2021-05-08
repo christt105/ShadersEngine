@@ -280,6 +280,11 @@ void Gui(App* app)
 void Update(App* app)
 {
     // You can handle app->input keyboard/mouse here
+    if (app->input.mouseButtons[0] == ButtonState::BUTTON_PRESSED) {
+        app->camera.theta   += app->input.mouseDelta.x * app->deltaTime * 20.f;
+        app->camera.phi     -= app->input.mouseDelta.y * app->deltaTime * 20.f;
+        app->camera.phi = std::max(0.1f, std::min(app->camera.phi, 179.9f));
+    }
 
     for (u64 i = 0ULL; i < app->programs.size(); ++i) {
         Program& program = app->programs[i];
