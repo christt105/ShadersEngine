@@ -213,6 +213,11 @@ struct App
 
     Camera camera;
     std::vector<Light> lights;
+
+    //Framebuffer
+    GLuint framebufferHandle;
+    GLuint depthAttachmentHandle;
+    GLuint colorAttachmentHandle;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);
