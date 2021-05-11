@@ -11,6 +11,9 @@
 #include <stb_image_write.h>
 
 #include "assimp_model_loading.h"
+#include "buffer_management.h"
+
+#define BINDING(b) b
 
 GLuint CreateProgramFromSource(String programSource, const char* shaderName)
 {
@@ -218,6 +221,8 @@ void Init(App* app)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
     glBindVertexArray(0);
 
+    app->cBuffer = CreateBuffer(sizeof(glm::mat4) * 2, GL_UNIFORM_BUFFER, GL_STREAM_DRAW);
+
     // - programs (and retrieve uniform indices)
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY");
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
@@ -232,7 +237,6 @@ void Init(App* app)
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 2, 2 });
     
-
     // - textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
     app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
@@ -383,21 +387,41 @@ void Render(App* app)
         Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
         glUseProgram(texturedMeshProgram.handle);
 
+        MapBuffer(app->cBuffer, GL_WRITE_ONLY);
+
+        u32 parmsOffset = app->cBuffer.head;
+
+        PushVec3(app->cBuffer, app->camera.pos);
+
+        PushUInt(app->cBuffer, app->lights.size());
+        for (auto& light : app->lights)
+        {
+            AlignHead(app->cBuffer, sizeof(glm::vec4));
+
+            PushUInt(app->cBuffer, light.type);
+            PushVec3(app->cBuffer, light.color);
+            PushVec3(app->cBuffer, light.direction);
+            PushVec3(app->cBuffer, light.position);
+        }
+
+        u32 parmsSize = app->cBuffer.head - parmsOffset;
+  
+
         for (auto& e : app->entities) {
+
             Model& model = app->models[e.model];
             Mesh& mesh = app->meshes[model.meshIdx];
 
-            glUniformMatrix4fv(app->texturedMeshProgramIdx_uViewProjection, 1, GL_FALSE, &app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y })[0][0]);
+            glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
+ 
+            AlignHead(app->cBuffer, sizeof(glm::mat4));
+            e.localParamsOffset = app->cBuffer.head;
+            PushMat4(app->cBuffer, viewMat);
+            PushMat4(app->cBuffer, e.mat);
+            e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
 
-            glUniformMatrix4fv(app->texturedMeshProgramIdx_uWorldMatrix, 1, GL_FALSE, glm::value_ptr(e.mat));
-
-            glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uCameraPos"), app->camera.pos.x, app->camera.pos.y, app->camera.pos.z);
-            //for (auto& light : app->lights)
-            //{
-                glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightColor"), app->lights[0].color.x, app->lights[0].color.y, app->lights[0].color.z);
-                glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightPos"), app->lights[0].position.x, app->lights[0].position.y, app->lights[0].position.z);
-
-            //}
+            glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, parmsOffset, parmsSize);
+            glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(1), app->cBuffer.handle, e.localParamsOffset, e.localParamsSize);
 
             for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
                 GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
@@ -413,6 +437,8 @@ void Render(App* app)
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
             }
         }
+        UnmapBuffer(app->cBuffer);
+
         break;
     }
     default:
