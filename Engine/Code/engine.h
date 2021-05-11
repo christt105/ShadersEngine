@@ -215,9 +215,10 @@ struct App
     std::vector<Light> lights;
 
     //Framebuffer
-    GLuint framebufferHandle;
+    GLuint framebufferHandle; //TODO struct and enum with attachments
     GLuint depthAttachmentHandle;
     GLuint colorAttachmentHandle;
+    GLuint normalsAttachmentHandle;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);

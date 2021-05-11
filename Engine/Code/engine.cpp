@@ -262,6 +262,16 @@ void Init(App* app)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
 
+    glGenTextures(1, &app->normalsAttachmentHandle);
+    glBindTexture(GL_TEXTURE_2D, app->normalsAttachmentHandle);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
     glGenTextures(1, &app->depthAttachmentHandle);
     glBindTexture(GL_TEXTURE_2D, app->depthAttachmentHandle);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, app->displaySize.x, app->displaySize.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
@@ -275,6 +285,7 @@ void Init(App* app)
     glGenFramebuffers(1, &app->framebufferHandle);
     glBindFramebuffer(GL_FRAMEBUFFER, app->framebufferHandle);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, app->colorAttachmentHandle, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, app->normalsAttachmentHandle, 0);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, app->depthAttachmentHandle, 0);
 
     GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -293,7 +304,7 @@ void Init(App* app)
         }
     }
 
-    glDrawBuffers(1, &app->colorAttachmentHandle);
+    glDrawBuffers(2, &app->colorAttachmentHandle);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
@@ -317,6 +328,41 @@ void Gui(App* app)
     ImGui::DragFloat("DistanceToOrigin", &app->camera.distanceToOrigin, 0.15f);
     ImGui::SliderFloat("phi", &app->camera.phi, 0.1f, 179.f, "%.1f");
     ImGui::DragFloat("theta", &app->camera.theta);
+
+    ImGui::Separator();
+
+    static const char* targets[] = { "final render", "depth", "normals", "ambient occlusion", "albedo" };
+    static int sel = 0;
+    ImGui::Text("Target render");
+    if (ImGui::BeginCombo("Target", targets[sel])) {
+        for (int i = 0; i < 5; ++i)
+            if (ImGui::Selectable(targets[i])) sel = i;
+        ImGui::EndCombo();
+    }
+
+    GLuint tex = 0;
+    switch (sel)
+    {
+    case 0:
+        tex = app->colorAttachmentHandle;
+        break;
+    case 1:
+        tex = app->depthAttachmentHandle;
+        break;
+    case 2:
+        tex = app->normalsAttachmentHandle;
+        break;
+    case 3:
+        tex = app->colorAttachmentHandle;
+        break;
+    case 4:
+        tex = app->colorAttachmentHandle;
+        break;
+    default:
+        break;
+    }
+
+    ImGui::Image((ImTextureID)tex, ImVec2(ImGui::GetWindowWidth(), app->displaySize.y  * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
 
     ImGui::End();
 }
@@ -390,22 +436,22 @@ GLuint FindVAO(Mesh& mesh, u32 submeshIndex, const Program& program) {
 
 void Render(App* app)
 {
-        // - clear the framebuffer
+    // - clear the framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, app->framebufferHandle);
     GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
     glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
 
-        glClearColor(0.2f, 0.2f, 0.2f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearColor(0.2f, 0.2f, 0.2f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // - set the viewport
-        glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+    // - set the viewport
+    glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
-        // - set the blending state
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    // - set the blending state
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        glEnable(GL_DEPTH_TEST);
+    glEnable(GL_DEPTH_TEST);
     switch (app->mode)
     {
     case Mode_TexturedQuad:
@@ -448,11 +494,11 @@ void Render(App* app)
             glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uCameraPos"), app->camera.pos.x, app->camera.pos.y, app->camera.pos.z);
             //for (auto& light : app->lights)
             //{
-                glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightColor"), app->lights[0].color.x, app->lights[0].color.y, app->lights[0].color.z);
-                glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightPos"), app->lights[0].position.x, app->lights[0].position.y, app->lights[0].position.z);
+            glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightColor"), app->lights[0].color.x, app->lights[0].color.y, app->lights[0].color.z);
+            glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightPos"), app->lights[0].position.x, app->lights[0].position.y, app->lights[0].position.z);
 
             //}
-                
+
 
             for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
                 GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
@@ -460,7 +506,7 @@ void Render(App* app)
 
                 u32 submeshMaterialIdx = model.materialIdx[i];
                 Material& submeshmaterial = app->materials[submeshMaterialIdx];
-                glActiveTexture(GL_TEXTURE);
+                glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
                 glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
 

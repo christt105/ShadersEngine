@@ -78,13 +78,18 @@ uniform vec3 uLightColor;
 uniform vec3 uLightPos;
 
 layout(location = 0) out vec4 oColor;
+layout(location = 1) out vec4 oNormals;
+layout(location = 2) out vec4 oSpecular;
+layout(location = 3) out vec4 oEmissive;
 
 void main() {
 
 	vec3 result = CalculateDirectionalLight(uLightPos, uLightColor, normalize(vNormals), normalize(vViewDir), vTexCoord);
 
-	oColor =  vec4(result,1.0) * texture(uTexture, vTexCoord);
-	//oColor = vec4(vNormals, 1.0);
+	oColor 		= vec4(result,1.0) * texture(uTexture, vTexCoord);
+	oNormals 	= vec4(vNormals, 1.0);
+
+	gl_FragDepth = gl_FragCoord.z - 0.2;
 }
 
 
