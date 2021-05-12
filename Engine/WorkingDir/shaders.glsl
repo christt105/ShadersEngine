@@ -49,9 +49,9 @@ struct Light{
 
 layout(binding = 0, std140) uniform GlobalParms
 {
-	vec3 	uCameraPos;
-	int 	uLightCount;
-	Light	uLight[4];
+	vec3 			uCameraPos;
+ 	int 			uLightCount;
+ 	Light			uLight[4];
 };
 
 layout(binding = 1, std140) uniform LocalParms
@@ -108,9 +108,9 @@ layout(location = 0) out vec4 oColor;
 void main() {
 
 	vec3 result = vec3(0.0,0.0,0.0);
-	for(int i = 0; i < uLightCount; ++i)
+	for(int i = 0; i < 1; ++i)
 	{			
-			result += CalculateDirectionalLight(uLight[0].position, uLight[0].color, normalize(vNormals), normalize(vViewDir), vTexCoord);
+			result += CalculateDirectionalLight(uLight[i].position, uLight[i].color, normalize(vNormals), normalize(vViewDir), vTexCoord);
 	}
 	oColor =  vec4(result,1.0) * texture(uTexture, vTexCoord);
 	//oColor = vec4(vNormals, 1.0);

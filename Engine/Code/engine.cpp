@@ -221,7 +221,9 @@ void Init(App* app)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
     glBindVertexArray(0);
 
-    app->cBuffer = CreateBuffer(sizeof(glm::mat4) * 2, GL_UNIFORM_BUFFER, GL_STREAM_DRAW);
+    GLint maxsize;
+    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
+    app->cBuffer = CreateBuffer(maxsize, GL_UNIFORM_BUFFER, GL_STREAM_DRAW);
 
     // - programs (and retrieve uniform indices)
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY");
@@ -281,7 +283,7 @@ void Gui(App* app)
 void Update(App* app)
 {
     // You can handle app->input keyboard/mouse here
-
+   
     for (u64 i = 0ULL; i < app->programs.size(); ++i) {
         Program& program = app->programs[i];
         u64 currentTimestamp = GetFileLastWriteTimestamp(program.filepath.c_str());
@@ -389,7 +391,7 @@ void Render(App* app)
 
         MapBuffer(app->cBuffer, GL_WRITE_ONLY);
 
-        u32 parmsOffset = app->cBuffer.head;
+        app->globlaParamsOffset = app->cBuffer.head;
 
         PushVec3(app->cBuffer, app->camera.pos);
 
@@ -404,8 +406,8 @@ void Render(App* app)
             PushVec3(app->cBuffer, light.position);
         }
 
-        u32 parmsSize = app->cBuffer.head - parmsOffset;
-  
+        app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
+
 
         for (auto& e : app->entities) {
 
@@ -413,14 +415,14 @@ void Render(App* app)
             Mesh& mesh = app->meshes[model.meshIdx];
 
             glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
- 
+
             AlignHead(app->cBuffer, sizeof(glm::mat4));
             e.localParamsOffset = app->cBuffer.head;
-            PushMat4(app->cBuffer, viewMat);
             PushMat4(app->cBuffer, e.mat);
+            PushMat4(app->cBuffer, viewMat);
             e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
 
-            glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, parmsOffset, parmsSize);
+            glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);
             glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(1), app->cBuffer.handle, e.localParamsOffset, e.localParamsSize);
 
             for (u32 i = 0; i < mesh.submeshes.size(); ++i) {

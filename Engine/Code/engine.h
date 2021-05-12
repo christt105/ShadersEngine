@@ -219,6 +219,8 @@ struct App
     std::vector<Light> lights;
     Buffer cBuffer;
     GLuint globlaParamsOffset;
+    GLuint globalParamsSize;
+
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);
