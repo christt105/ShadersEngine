@@ -160,6 +160,11 @@ int main()
         return -1;
     }
 
+    if (GLVersion.major > 4 || (GLVersion.major == 4 && GLVersion.minor >= 3)) {
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(CheckOpenGLError, nullptr/*(void*)&app*/);
+    }
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
 
