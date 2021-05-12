@@ -133,7 +133,8 @@ enum LightType
 
     enum class FrameBuffer {
         Framebuffer,
-        FinalRender, Albedo, Normals, Light, Depth,
+        FinalRender, Albedo, Normals, Light, 
+        Depth,
         MAX
     };
 
