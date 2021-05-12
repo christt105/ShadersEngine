@@ -79,7 +79,7 @@ uniform vec3 uLightPos;
 
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oNormals;
-layout(location = 2) out vec4 oSpecular;
+layout(location = 2) out vec4 oSpecular; //TODO CHANGE NAME
 layout(location = 3) out vec4 oEmissive;
 
 void main() {
@@ -88,6 +88,8 @@ void main() {
 
 	oColor 		= vec4(result,1.0) * texture(uTexture, vTexCoord);
 	oNormals 	= vec4(vNormals, 1.0);
+	oSpecular   = texture(uTexture, vTexCoord);
+	oEmissive   = vec4(result, 1.0);
 
 	gl_FragDepth = gl_FragCoord.z - 0.2;
 }

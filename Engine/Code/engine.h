@@ -219,6 +219,8 @@ struct App
     GLuint depthAttachmentHandle;
     GLuint colorAttachmentHandle;
     GLuint normalsAttachmentHandle;
+    GLuint specularAttachmentHandle;
+    GLuint lightAttachmentHandle;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);
