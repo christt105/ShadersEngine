@@ -8,6 +8,7 @@
 #include <glad/glad.h>
 
 #include "assimp_model_loading.h"
+#include <map>
 
 typedef glm::vec2  vec2;
 typedef glm::vec3  vec3;
@@ -130,6 +131,16 @@ enum LightType
     LightType_Point
 };
 
+    enum class FrameBuffer {
+        Framebuffer,
+        FinalRender, Albedo, Normals, Light, Depth,
+        MAX
+    };
+
+/*struct FrameBuffer {
+    Attachment ids[(int)Attachment::MAX];
+};*/
+
 struct Light
 {
     LightType type;
@@ -215,12 +226,7 @@ struct App
     std::vector<Light> lights;
 
     //Framebuffer
-    GLuint framebufferHandle; //TODO struct and enum with attachments
-    GLuint depthAttachmentHandle;
-    GLuint colorAttachmentHandle;
-    GLuint normalsAttachmentHandle;
-    GLuint specularAttachmentHandle;
-    GLuint lightAttachmentHandle;
+    std::map<FrameBuffer, u32> framebuffer;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);
@@ -241,3 +247,4 @@ void APIENTRY CheckOpenGLError(GLenum source,
     const GLchar* message,
     const void* userParam);
 
+static std::string FrameBufferToString(FrameBuffer fb);
