@@ -38,7 +38,6 @@ layout(location=0) in vec3 aPos;
 layout(location=1) in vec3 aNormals;
 layout(location=2) in vec2 aTexCoord;
 
-const int MAX_LIGHTS = 4;
 
 struct Light{
 	 unsigned int 	type; // 0: dir, 1: point
@@ -51,7 +50,7 @@ layout(binding = 0, std140) uniform GlobalParms
 {
 	vec3 			uCameraPos;
  	int 			uLightCount;
- 	Light			uLight[4];
+ 	Light			uLight[16];
 };
 
 layout(binding = 1, std140) uniform LocalParms
@@ -80,7 +79,6 @@ void main() {
 //---------------------------Function declaration--------------------------------------
 vec3 CalculateDirectionalLight(vec3 lightPos, vec3 lightColor, vec3 normal, vec3 view_dir, vec2 texCoords);
 
-#define MAX_LIGHTS 20;
 
  struct Light{
 	 unsigned int 	type; // 0: dir, 1: point
@@ -94,7 +92,7 @@ layout(binding = 0, std140) uniform GlobalParms
 {
 	vec3 			uCameraPos;
 	int 			uLightCount;
-	Light			uLight[4];
+	Light			uLight[16];
 };
 
 in vec2 vTexCoord;
@@ -112,8 +110,8 @@ void main() {
 	{			
 			result += CalculateDirectionalLight(uLight[i].position, uLight[i].color, normalize(vNormals), normalize(vViewDir), vTexCoord);
 	}
-	oColor =  vec4(result,1.0) * texture(uTexture, vTexCoord);
-	//oColor = vec4(vNormals, 1.0);
+	oColor = vec4(result * texture(uTexture, vTexCoord).rgb,1.0); 
+		//oColor = vec4(vNormals, 1.0);
 }
 
 
@@ -132,7 +130,7 @@ vec3 CalculateDirectionalLight(vec3 lightPos, vec3 lightColor, vec3 normal, vec3
     vec3 specular = vec3(0);
     specular = ambient * 0.1 * spec;
     // Final Calculation     
-    return ambient + diffuse + specular;
+    return (ambient + diffuse + specular) ;
 }
 
 #endif

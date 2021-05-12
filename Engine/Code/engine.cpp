@@ -222,6 +222,8 @@ void Init(App* app)
     glBindVertexArray(0);
 
     GLint maxsize;
+
+    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &app->uniformBlockAligment);
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
     app->cBuffer = CreateBuffer(maxsize, GL_UNIFORM_BUFFER, GL_STREAM_DRAW);
 
@@ -249,10 +251,11 @@ void Init(App* app)
     u32 pat = LoadModel(app, "Patrick/Patrick.obj");
 
     app->entities.push_back(Entity(glm::mat4(1.f), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(5.f, 0.f, -4.f)), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-5.f, 0.f, -2.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-2.1f, 0.1f, -1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(2.1f, 0.1f, -1.f)), pat));
 
     app->lights.push_back(Light(LightType::LightType_Directional, vec3(1.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, -10.f, 0.f)));
+    app->lights.push_back(Light(LightType::LightType_Directional, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(5.f, -10.f, 0.f)));
 
     app->mode = Mode::Mode_Patrick;
 }
@@ -404,10 +407,9 @@ void Render(App* app)
             PushVec3(app->cBuffer, light.color);
             PushVec3(app->cBuffer, light.direction);
             PushVec3(app->cBuffer, light.position);
+            
+            app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
         }
-
-        app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
-
 
         for (auto& e : app->entities) {
 
@@ -416,7 +418,7 @@ void Render(App* app)
 
             glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
 
-            AlignHead(app->cBuffer, sizeof(glm::mat4));
+            AlignHead(app->cBuffer, app->uniformBlockAligment);
             e.localParamsOffset = app->cBuffer.head;
             PushMat4(app->cBuffer, e.mat);
             PushMat4(app->cBuffer, viewMat);
@@ -446,5 +448,9 @@ void Render(App* app)
     default:
         break;
     }
+}
+
+void CheckOpenGLError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+{
 }
 

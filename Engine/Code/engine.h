@@ -220,6 +220,7 @@ struct App
     Buffer cBuffer;
     GLuint globlaParamsOffset;
     GLuint globalParamsSize;
+    int uniformBlockAligment;
 
 };
 
