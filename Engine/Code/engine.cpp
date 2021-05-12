@@ -9,9 +9,11 @@
 #include <imgui.h>
 #include <stb_image.h>
 #include <stb_image_write.h>
-#include <iostream>
 
 #include "assimp_model_loading.h"
+#include "buffer_management.h"
+
+#define BINDING(b) b
 
 GLuint CreateProgramFromSource(String programSource, const char* shaderName)
 {
@@ -219,6 +221,12 @@ void Init(App* app)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
     glBindVertexArray(0);
 
+    GLint maxsize;
+
+    glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &app->uniformBlockAligment);
+    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxsize);
+    app->cBuffer = CreateBuffer(maxsize, GL_UNIFORM_BUFFER, GL_STREAM_DRAW);
+
     // - programs (and retrieve uniform indices)
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY");
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
@@ -233,7 +241,6 @@ void Init(App* app)
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 2, 2 });
     
-
     // - textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
     app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
@@ -244,10 +251,11 @@ void Init(App* app)
     u32 pat = LoadModel(app, "Patrick/Patrick.obj");
 
     app->entities.push_back(Entity(glm::mat4(1.f), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(5.f, 0.f, -4.f)), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-5.f, 0.f, -2.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-2.1f, 0.1f, -1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(2.1f, 0.1f, -1.f)), pat));
 
-    app->lights.push_back(Light(LightType::LightType_Directional, vec3(1.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, -10.f, 0.f)));
+    app->lights.push_back(Light(LightType::LightType_Directional, vec3(1.0, 0, 0), vec3(0.0, -1.0, 1.0), vec3(0.f, -10.f, 0.f)));
+    //app->lights.push_back(Light(LightType::LightType_Directional, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(5.f, -10.f, 0.f)));
 
     app->mode = Mode::Mode_Patrick;
 
@@ -310,7 +318,6 @@ void Gui(App* app)
 {
     ImGui::Begin("Info");
     ImGui::Text("FPS: %f", 1.0f/app->deltaTime);
-    ImGui::Text("ImGui Version: %s", ImGui::GetVersion());
 
     ImGui::Separator();
 
@@ -458,22 +465,40 @@ void Render(App* app)
         Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
         glUseProgram(texturedMeshProgram.handle);
 
+        MapBuffer(app->cBuffer, GL_WRITE_ONLY);
+
+        app->globlaParamsOffset = app->cBuffer.head;
+
+        PushVec3(app->cBuffer, app->camera.pos);
+
+        PushUInt(app->cBuffer, app->lights.size());
+        for (auto& light : app->lights)
+        {
+            AlignHead(app->cBuffer, sizeof(glm::vec4));
+
+            PushUInt(app->cBuffer, light.type);
+            PushVec3(app->cBuffer, light.color);
+            PushVec3(app->cBuffer, light.direction);
+            PushVec3(app->cBuffer, light.position);
+            
+            app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
+        }
+
         for (auto& e : app->entities) {
+
             Model& model = app->models[e.model];
             Mesh& mesh = app->meshes[model.meshIdx];
 
-            glUniformMatrix4fv(app->texturedMeshProgramIdx_uViewProjection, 1, GL_FALSE, &app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y })[0][0]);
+            glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
 
-            glUniformMatrix4fv(app->texturedMeshProgramIdx_uWorldMatrix, 1, GL_FALSE, glm::value_ptr(e.mat));
+            AlignHead(app->cBuffer, app->uniformBlockAligment);
+            e.localParamsOffset = app->cBuffer.head;
+            PushMat4(app->cBuffer, e.mat);
+            PushMat4(app->cBuffer, viewMat);
+            e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
 
-            glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uCameraPos"), app->camera.pos.x, app->camera.pos.y, app->camera.pos.z);
-            //for (auto& light : app->lights)
-            //{
-            glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightColor"), app->lights[0].color.x, app->lights[0].color.y, app->lights[0].color.z);
-            glUniform3f(glGetUniformLocation(texturedMeshProgram.handle, "uLightPos"), app->lights[0].position.x, app->lights[0].position.y, app->lights[0].position.z);
-
-            //}
-
+            glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);
+            glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(1), app->cBuffer.handle, e.localParamsOffset, e.localParamsSize);
 
             for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
                 GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
@@ -489,6 +514,8 @@ void Render(App* app)
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
             }
         }
+        UnmapBuffer(app->cBuffer);
+
         break;
     }
     default:
@@ -501,103 +528,8 @@ void Render(App* app)
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 }
 
-void CheckOpenGLError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* msg, const void* userParam)
+void CheckOpenGLError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
-    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION)
-        return;
-
-    std::string _source;
-    std::string _type;
-    std::string _severity;
-
-    switch (source) {
-    case GL_DEBUG_SOURCE_API:
-        _source = "API";
-        break;
-
-    case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
-        _source = "WINDOW SYSTEM";
-        break;
-
-    case GL_DEBUG_SOURCE_SHADER_COMPILER:
-        _source = "SHADER COMPILER";
-        break;
-
-    case GL_DEBUG_SOURCE_THIRD_PARTY:
-        _source = "THIRD PARTY";
-        break;
-
-    case GL_DEBUG_SOURCE_APPLICATION:
-        _source = "APPLICATION";
-        break;
-
-    case GL_DEBUG_SOURCE_OTHER:
-        _source = "UNKNOWN";
-        break;
-
-    default:
-        _source = "UNKNOWN";
-        break;
-    }
-
-    switch (type) {
-    case GL_DEBUG_TYPE_ERROR:
-        _type = "ERROR";
-        break;
-
-    case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
-        _type = "DEPRECATED BEHAVIOR";
-        break;
-
-    case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
-        _type = "UDEFINED BEHAVIOR";
-        break;
-
-    case GL_DEBUG_TYPE_PORTABILITY:
-        _type = "PORTABILITY";
-        break;
-
-    case GL_DEBUG_TYPE_PERFORMANCE:
-        _type = "PERFORMANCE";
-        break;
-
-    case GL_DEBUG_TYPE_OTHER:
-        _type = "OTHER";
-        break;
-
-    case GL_DEBUG_TYPE_MARKER:
-        _type = "MARKER";
-        break;
-
-    default:
-        _type = "UNKNOWN";
-        break;
-    }
-
-    switch (severity) {
-    case GL_DEBUG_SEVERITY_HIGH:
-        _severity = "HIGH";
-        break;
-
-    case GL_DEBUG_SEVERITY_MEDIUM:
-        _severity = "MEDIUM";
-        break;
-
-    case GL_DEBUG_SEVERITY_LOW:
-        _severity = "LOW";
-        break;
-
-    case GL_DEBUG_SEVERITY_NOTIFICATION:
-        _severity = "NOTIFICATION";
-        break;
-
-    default:
-        _severity = "UNKNOWN";
-        break;
-    }
-
-    printf("%d: %s of %s severity, raised from %s: %s\n",
-        id, _type.c_str(), _severity.c_str(), _source.c_str(), msg);
 }
 
 std::string FrameBufferToString(FrameBuffer fb)

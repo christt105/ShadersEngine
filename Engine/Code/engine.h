@@ -121,6 +121,8 @@ enum Mode
 struct Entity {
     glm::mat4 mat = glm::mat4(1.0f);
     u32 model;
+    u32 localParamsOffset;
+    u32 localParamsSize;
 
     Entity(const glm::mat4& m, u32 mod) : mat(m), model(mod){}
 };
@@ -150,6 +152,8 @@ struct Light
     vec3 position;
     Light(const LightType t, const vec3 c, vec3 dir, vec3 pos): type(t),color(c),direction(dir),position(pos){}
 };
+
+
 
 struct Camera {
     enum CameraMode {
@@ -228,6 +232,11 @@ struct App
 
     //Framebuffer
     std::map<FrameBuffer, u32> framebuffer;
+    Buffer cBuffer;
+    GLuint globlaParamsOffset;
+    GLuint globalParamsSize;
+    int uniformBlockAligment;
+
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);
