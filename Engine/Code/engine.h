@@ -262,7 +262,6 @@ struct App
     GLuint globlaParamsOffset;
     GLuint globalParamsSize;
     int uniformBlockAligment;
-
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);
@@ -274,6 +273,8 @@ void Gui(App* app);
 void Update(App* app);
 
 void Render(App* app);
+
+void renderQuad();
 
 void APIENTRY CheckOpenGLError(GLenum source,
     GLenum type,
