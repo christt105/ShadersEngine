@@ -114,7 +114,8 @@ struct VertexV3V2 {
 enum Mode
 {
     Mode_TexturedQuad,
-    Mode_Patrick,
+    Mode_Forward,
+    Mode_Deferred,
     Mode_Count
 };
 
@@ -135,7 +136,7 @@ enum LightType
 
     enum class FrameBuffer {
         Framebuffer,
-        FinalRender, Albedo, Normals, Light, 
+        FinalRender, Albedo, Normals, Light, Position,
         Depth,
         MAX
     };
@@ -220,6 +221,8 @@ struct App
     // program indices
     u32 texturedGeometryProgramIdx;
     u32 texturedMeshProgramIdx;
+    u32 texturedLightProgramIdx;
+    u32 texturedForwardProgramIdx;
     
     // texture indices
     u32 diceTexIdx;
@@ -241,6 +244,12 @@ struct App
     GLuint texturedMeshProgramIdx_uTexture;
     GLuint texturedMeshProgramIdx_uViewProjection;
     GLuint texturedMeshProgramIdx_uWorldMatrix;
+
+    GLuint texturedMeshProgramIdx_uTexture2;
+
+    GLuint texturedMeshProgramIdx_uAlbedo;
+    GLuint texturedMeshProgramIdx_uPosition;
+    GLuint texturedMeshProgramIdx_uNormals;
 
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;

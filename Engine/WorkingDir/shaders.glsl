@@ -122,6 +122,7 @@ layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oNormals;
 layout(location = 2) out vec4 oAlbedo;
 layout(location = 3) out vec4 oLight;
+layout(location = 4) out vec4 oPosition;
 
 void main() {
 
@@ -141,9 +142,10 @@ void main() {
 	}
 
 	oColor 		= vec4(result,1.0) + texture(uAlbedoTexture, vTexCoord) * 0.2;
-	oNormals 	= vec4(normals, 1.0);
+	oNormals 	= vec4(vNormals, 1.0);
 	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
 	oLight		= vec4(result, 1.0);
+	oPosition   = vec4(vPos, 1.0);
 	
 	gl_FragDepth = gl_FragCoord.z - 0.1;
 }
@@ -202,9 +204,6 @@ layout(location=1) in vec3 aNormals;
 layout(location=2) in vec2 aTexCoord;
 layout(location=3) in vec3 aTangents;
 layout(location=4) in vec3 aBiTangents;
-
-
-
 
 layout(binding = 0, std140) uniform GlobalParms
 {
@@ -276,6 +275,7 @@ layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oNormals;
 layout(location = 2) out vec4 oAlbedo;
 layout(location = 3) out vec4 oLight;
+layout(location = 4) out vec4 oPosition;
 
 void main() {
 
@@ -285,6 +285,7 @@ void main() {
 	oNormals 	= vec4(vNormals, 1.0);
 	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
 	oLight		= vec4(1.0);
+	oPosition   = vec4(vPos, 1.0);
 	
 	gl_FragDepth = gl_FragCoord.z - 0.1;
 }
@@ -299,7 +300,7 @@ void main() {
 #if defined(VERTEX) ///////////////////////////////////////////////////
 
 layout(location=0) in vec3 aPos;
-layout(location=2) in vec2 aTexCoord;
+layout(location=1) in vec2 aTexCoord;
 
 struct Light{
 	 unsigned int 	type; // 0: dir, 1: point
@@ -337,11 +338,6 @@ struct Light{
 
 };
 
-struct Textures{
- 	sampler2D uAlbedoTexture;
- 	sampler2D uPositionTexture;
- 	sampler2D uNormalsTexture;
-}
 //---------------------------Function declaration--------------------------------------
 vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords);
 vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords);
@@ -352,8 +348,11 @@ layout(binding = 0, std140) uniform GlobalParms
 	vec3 			uCameraPos;
 	int 			uLightCount;
 	Light			uLight[16];
-	Textures		texts;
 };
+
+uniform sampler2D uAlbedoTexture;
+uniform sampler2D uPositionTexture;
+uniform sampler2D uNormalsTexture;
 
 in vec2 vTexCoord;
 
@@ -361,9 +360,9 @@ layout(location = 0) out vec4 oColor;
 
 void main() {
 
-	vec3 fragPos = texture(texts.uPositionTexture, vTexCoord).rgb;
-	vec3 norms = texture(texts.uNormalsTexture, vTexCoord).rgb;
-	vec3 diffuseCol = texture(texts.uAlbedoTexture, vTexCoord).rgb;
+	vec3 fragPos = texture(uPositionTexture, vTexCoord).rgb;
+	vec3 norms = texture(uNormalsTexture, vTexCoord).rgb;
+	vec3 diffuseCol = texture(uAlbedoTexture, vTexCoord).rgb;
 
 	vec3 viewDir = normalize(uCameraPos - fragPos);
 	vec3 result = vec3(0.0,0.0,0.0);
@@ -379,7 +378,7 @@ void main() {
 		}
 	}
 
-	oColor 	= vec4(result,1.0) + diffuseCol * 0.2;
+	oColor 	= vec4(result + diffuseCol * 0.2, 1.0);
 
 }
 
