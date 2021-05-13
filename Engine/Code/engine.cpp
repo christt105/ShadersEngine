@@ -240,6 +240,8 @@ void Init(App* app)
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 2, 2 });
+    texturedMeshProgram.vertexInputLayout.attributes.push_back({ 3, 3 });
+    texturedMeshProgram.vertexInputLayout.attributes.push_back({ 4, 3 });
     
     // - textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
@@ -251,11 +253,21 @@ void Init(App* app)
     u32 pat = LoadModel(app, "Patrick/Patrick.obj");
 
     app->entities.push_back(Entity(glm::mat4(1.f), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-2.1f, 0.1f, -1.f)), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(2.1f, 0.1f, -1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-4.1f, 0.1f, -1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(4.1f, 0.1f, -1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(8.1f, 0.1f, -1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-8.1f, 0.1f, -1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, -1.f)), pat));
 
-    app->lights.push_back(Light(LightType::LightType_Directional, vec3(1.0, 0, 0), vec3(0.0, -1.0, 1.0), vec3(0.f, -10.f, 0.f)));
-    //app->lights.push_back(Light(LightType::LightType_Directional, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(5.f, -10.f, 0.f)));
+    //app->lights.push_back(Light(LightType::LightType_Directional, vec3(0.f, 1.f, 0.f), vec3(0.0, -1.0, -1.0), vec3(0.f, 10.f, 0.f)));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, 0.0), vec3(0.0, -1.0, 1.0), vec3(0.f, 2.f, -2.f), 1.0));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, 1.f, 2.f), 0.8));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 0.0), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, -2.f), 0.6));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.1, 0.5, 0.3), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, 2.f), 1.0));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.5, 0.3, 0.1), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, 2.f), 0.5));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.3, 0.1, 0.5), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, -2.f),0.3));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 1.f, 2.f),0.6));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 1.f, -2.f), 0.8));
 
     app->mode = Mode::Mode_Patrick;
 
@@ -524,6 +536,15 @@ void Render(App* app)
             PushVec3(app->cBuffer, light.color);
             PushVec3(app->cBuffer, light.direction);
             PushVec3(app->cBuffer, light.position);
+
+            float constant = 1.0;
+            float linear = 0.7;
+            float quadratic = 1.8;
+            light.intensity = std::fmaxf(std::fmaxf(light.color.r, light.color.g), light.color.b);
+            (-linear + std::sqrtf(linear * linear - 4 * quadratic * (constant - (256.0 / 5.0) * light.intensity)))
+                / (2 * quadratic);
+
+            PushFloat(app->cBuffer, light.intensity);
             
             app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
         }
