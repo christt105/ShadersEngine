@@ -528,7 +528,7 @@ void Render(App* app)
         PushVec3(app->cBuffer, app->camera.pos);
 
         PushUInt(app->cBuffer, app->lights.size());
-        for (auto& light : app->lights)
+       /* for (auto& light : app->lights)
         {
             AlignHead(app->cBuffer, sizeof(glm::vec4));
 
@@ -546,8 +546,8 @@ void Render(App* app)
 
             PushFloat(app->cBuffer, light.intensity);
             
-            app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
-        }
+        }*/
+        app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
 
         for (auto& e : app->entities) {
 
