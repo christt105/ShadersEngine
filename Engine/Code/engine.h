@@ -150,7 +150,8 @@ struct Light
     vec3 color;
     vec3 direction;
     vec3 position;
-    Light(const LightType t, const vec3 c, vec3 dir, vec3 pos): type(t),color(c),direction(dir),position(pos){}
+    float intensity;
+    Light(const LightType t, const vec3 c, vec3 dir, vec3 pos, float intensity): type(t),color(c),direction(dir),position(pos), intensity(intensity){}
 };
 
 
