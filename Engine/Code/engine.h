@@ -162,18 +162,43 @@ struct Camera {
         ORBIT
     };
     CameraMode mode = ORBIT;
+    static std::string CameraModeToString(CameraMode m) {
+        switch (m)
+        {
+        case Camera::FPS:
+            return "FPS";
+        case Camera::ORBIT:
+            return "Orbit";
+        }
+        return "unknown";
+    }
 
     float distanceToOrigin = 12.f;
     float phi{ 90.f }, theta{ 90.f };
     vec3 pos;
+    vec3 front = vec3(0.f, 0.f, -1.f);
+    vec3 up = vec3(0.f, 1.f, 0.f);
+    vec3 right = vec3(1.f, 0.f, 0.f);
 
     glm::mat4 GetViewMatrix(const vec2& size) {
-        // Make sure that: 0 < phi < 3.14
         float Phi = glm::radians(phi);
         float Theta = glm::radians(theta);
-        pos = { distanceToOrigin * sin(Phi) * cos(Theta), distanceToOrigin * cos(Phi), distanceToOrigin * sin(Phi) * sin(Theta) };
+        if (mode == CameraMode::ORBIT) {
+            pos = { distanceToOrigin * sin(Phi) * cos(Theta), distanceToOrigin * cos(Phi), distanceToOrigin * sin(Phi) * sin(Theta) };
 
-        return glm::perspective(glm::radians(60.f), size.x / size.y, 0.1f, 100.f) * glm::lookAt(pos, vec3(0.f), vec3(0.f, 1.f, 0.f));
+            return glm::perspective(glm::radians(60.f), size.x / size.y, 0.1f, 100.f) * glm::lookAt(pos, vec3(0.f), vec3(0.f, 1.f, 0.f));
+        }
+        else {
+            front.x = cos(Theta) * cos(Phi);
+            front.y = sin(Phi);
+            front.z = sin(Theta) * cos(Phi);
+            front = glm::normalize(front);
+            // also re-calculate the Right and Up vector
+            right = glm::normalize(glm::cross(front, vec3(0.f, 1.f, 0.f)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
+            up = glm::normalize(glm::cross(right, front));
+
+            return glm::perspective(glm::radians(60.f), size.x / size.y, 0.1f, 100.f) * glm::lookAt(pos, pos + front, up);
+        }
     }
 };
 
