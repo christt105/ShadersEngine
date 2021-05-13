@@ -330,9 +330,19 @@ void Gui(App* app)
     ImGui::Separator();
 
     ImGui::Text("Camera");
-    ImGui::DragFloat("DistanceToOrigin", &app->camera.distanceToOrigin, 0.15f);
-    ImGui::SliderFloat("phi", &app->camera.phi, 0.1f, 179.f, "%.1f");
-    ImGui::DragFloat("theta", &app->camera.theta);
+    if (ImGui::BeginCombo("Type", Camera::CameraModeToString(app->camera.mode).c_str())) {
+        if (ImGui::Selectable("Orbit", app->camera.mode == Camera::CameraMode::ORBIT)) app->camera.mode = Camera::CameraMode::ORBIT;
+        if (ImGui::Selectable("FPS", app->camera.mode == Camera::CameraMode::FPS)) { app->camera.mode = Camera::CameraMode::FPS; app->camera.phi = -10.f; app->camera.theta = -90.f;}
+        ImGui::EndCombo();
+    }
+    if (app->camera.mode == Camera::CameraMode::ORBIT) {
+        ImGui::DragFloat("DistanceToOrigin", &app->camera.distanceToOrigin, 0.15f);
+        ImGui::SliderFloat("phi", &app->camera.phi, 0.1f, 179.f, "%.1f");
+        ImGui::DragFloat("theta", &app->camera.theta);
+    }
+    else {
+        ImGui::DragFloat3("Position", &app->camera.pos.x);
+    }
 
     ImGui::Separator();
 
@@ -352,10 +362,44 @@ void Gui(App* app)
 void Update(App* app)
 {
     // You can handle app->input keyboard/mouse here
-    if (app->input.mouseButtons[0] == ButtonState::BUTTON_PRESSED) {
-        app->camera.theta   += app->input.mouseDelta.x * app->deltaTime * 20.f;
-        app->camera.phi     -= app->input.mouseDelta.y * app->deltaTime * 20.f;
-        app->camera.phi      = std::max(0.1f, std::min(app->camera.phi, 179.9f));
+    if (app->camera.mode == Camera::CameraMode::ORBIT) {
+        if (app->input.mouseButtons[0] == ButtonState::BUTTON_PRESSED) {
+            app->camera.theta += app->input.mouseDelta.x * app->deltaTime * 20.f;
+            app->camera.phi -= app->input.mouseDelta.y * app->deltaTime * 20.f;
+            app->camera.phi = std::max(0.1f, std::min(app->camera.phi, 179.9f));
+        }
+
+        if (app->input.zDelta != 0.f) {
+            app->camera.distanceToOrigin -= app->input.zDelta * 20.f * app->deltaTime;
+            app->camera.distanceToOrigin = std::max(app->camera.distanceToOrigin, 1.f);
+            app->input.zDelta = 0.f;
+        }
+    }
+    else {
+        if (app->input.keys[Key::K_W] == ButtonState::BUTTON_PRESSED) {
+            app->camera.pos += app->camera.front * 20.f * app->deltaTime;
+        }
+        if (app->input.keys[Key::K_A] == ButtonState::BUTTON_PRESSED) {
+            app->camera.pos -= app->camera.right * 20.f * app->deltaTime;
+        }
+        if (app->input.keys[Key::K_S] == ButtonState::BUTTON_PRESSED) {
+            app->camera.pos -= app->camera.front * 20.f * app->deltaTime;
+        }
+        if (app->input.keys[Key::K_D] == ButtonState::BUTTON_PRESSED) {
+            app->camera.pos += app->camera.right * 20.f * app->deltaTime;
+        }
+        if (app->input.keys[Key::K_R] == ButtonState::BUTTON_PRESSED) {
+            app->camera.pos += app->camera.up * 20.f * app->deltaTime;
+        }
+        if (app->input.keys[Key::K_F] == ButtonState::BUTTON_PRESSED) {
+            app->camera.pos -= app->camera.up * 20.f * app->deltaTime;
+        }
+
+        if (app->input.mouseButtons[0] == ButtonState::BUTTON_PRESSED) {
+            app->camera.theta += app->input.mouseDelta.x * app->deltaTime * 20.f;
+            app->camera.phi -= app->input.mouseDelta.y * app->deltaTime * 20.f;
+            app->camera.phi = std::max(-89.9f, std::min(app->camera.phi, 89.9f));
+        }
     }
 
     for (u64 i = 0ULL; i < app->programs.size(); ++i) {

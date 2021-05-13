@@ -56,6 +56,7 @@ enum ButtonState {
 struct Input {
     glm::vec2   mousePos;
     glm::vec2   mouseDelta;
+    float       zDelta = 0.f;
     ButtonState mouseButtons[MOUSE_BUTTON_COUNT];
     ButtonState keys[KEY_COUNT];
 };
