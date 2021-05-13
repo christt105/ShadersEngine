@@ -145,7 +145,6 @@ void main() {
 	oLight		= vec4(result, 1.0);
 	
 	gl_FragDepth = gl_FragCoord.z - 0.1;
-		//oColor = vec4(vNormals, 1.0);
 }
 
 
