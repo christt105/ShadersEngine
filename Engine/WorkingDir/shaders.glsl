@@ -291,20 +291,20 @@ void main() {
 layout(location=0) in vec3 aPos;
 layout(location=1) in vec2 aTexCoord;
 
-/*struct Light{
+struct Light{
 	 unsigned int 	type; // 0: dir, 1: point
 	 vec3			color;
 	 vec3			direction;
 	 vec3			position;
 	 float 			intensity;
-};*/
+};
 
-/*layout(binding = 0, std140) uniform GlobalParms
+layout(binding = 0, std140) uniform GlobalParms
 {
 	vec3 			uCameraPos;
  	int 			uLightCount;
  	Light			uLight[16];
-};*/
+};
 
 
 out vec2 vTexCoord;
@@ -318,29 +318,29 @@ void main() {
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
 
-/*struct Light{
+struct Light {
 	 unsigned int 	type; // 0: dir, 1: point
 	 vec3			color;
 	 vec3			direction;
 	 vec3			position;
 	 float 			intensity;
-};*/
+};
 
 //---------------------------Function declaration--------------------------------------
-//vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords);
-//vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords);
+vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords);
+vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords);
 
 
-/*layout(binding = 0, std140) uniform GlobalParms
+layout(binding = 0, std140) uniform GlobalParms
 {
 	vec3 			uCameraPos;
 	int 			uLightCount;
 	Light			uLight[16];
-};*/
+};
 
-//uniform sampler2D uPositionTexture;
-//uniform sampler2D uNormalsTexture;
-//uniform sampler2D uAlbedoTexture;
+uniform sampler2D uPositionTexture;
+uniform sampler2D uNormalsTexture;
+uniform sampler2D uAlbedoTexture;
 
 in vec2 vTexCoord;
 
@@ -348,31 +348,27 @@ layout(location = 0) out vec4 oColor;
 
 void main() {
 
-	//vec3 fragPos = texture(uPositionTexture, vTexCoord).rgb;
-	//vec3 norms = texture(uNormalsTexture, vTexCoord).rgb;
-	//vec3 diffuseCol = texture(uAlbedoTexture, vTexCoord).rgb;
+	vec3 fragPos = texture(uPositionTexture, vTexCoord).rgb;
+	vec3 norms = texture(uNormalsTexture, vTexCoord).rgb;
+	vec3 diffuseCol = texture(uAlbedoTexture, vTexCoord).rgb;
 
-	//vec3 viewDir = normalize(uCameraPos - fragPos);
-	//vec3 result = vec3(0.0,0.0,0.0);
+	vec3 viewDir = normalize(uCameraPos - fragPos);
+	vec3 result = vec3(0.0,0.0,0.0);
 	
-	/*for(int i = 0; i < uLightCount; ++i)
+	for(int i = 0; i < uLightCount; ++i)
 	{			
-		if(uLight[i].type == 0)
+		if (uLight[i].type == 0) {
 			result += CalculateDirectionalLight(uLight[i], norms, normalize(viewDir), vTexCoord);
-		else{
-			if(uLight[i].intensity > 0){
-				result += CalculatePointLight(uLight[i], norms, fragPos, normalize(viewDir), vTexCoord);
-			} 
 		}
-	}*/
+		else if (uLight[i].intensity > 0) {
+				result += CalculatePointLight(uLight[i], norms, fragPos, normalize(viewDir), vTexCoord);
+		}
+	}
 
-	//oColor = vec4(result + diffuseCol * 0.2, 1.0);
-	//oColor = vec4(fragPos, 1.0);
-	oColor = vec4(vTexCoord.rg, 1.0, 1.0);
+	oColor = vec4(result + diffuseCol * 0.2, 1.0);
 }
 
-
-/*vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords){
+vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords) {
 	vec3 ambient = light.color;
     // Diffuse
     //vec3 fake_lightDir = normalize(light.lightPos - frag_pos);
@@ -390,8 +386,7 @@ void main() {
     return (diffuse + specular) * light.intensity;
 }
 
-vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords)
-{
+vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords) {
     // Ambient
     vec3 ambient = light.color;
     // diffuse shadi
@@ -406,7 +401,7 @@ vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir,
     float distance = length(light.position - frag_pos);
     float attenuation = 1/distance;      
 	return (diffuse + specular) * attenuation;
-}*/
+}
 
 
 
