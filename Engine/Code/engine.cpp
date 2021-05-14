@@ -511,6 +511,8 @@ void Render(App* app)
     case Mode_TexturedQuad:
     {
         // TODO: Draw your textured quad here!
+        glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // - bind the texture into unit 0
         glUniform1i(app->programUniformTexture, 0);
@@ -523,6 +525,8 @@ void Render(App* app)
         const Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
         glUseProgram(programTexturedGeometry.handle);
 
+        renderQuad();/*
+
         // - bind the vao
         glBindVertexArray(app->vao);
 
@@ -530,7 +534,7 @@ void Render(App* app)
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 
         glBindVertexArray(0);
-        glUseProgram(0);
+        glUseProgram(0);*/
     }
     break;
     case Mode_Forward: {
@@ -609,15 +613,16 @@ void Render(App* app)
         glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::FinalRender]);
         glUniform1i(app->programUniformTexture, 0);*/
 
+        glBindFramebuffer(GL_FRAMEBUFFER, NULL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glActiveTexture(GL_TEXTURE0);
-        glUniform1i(app->programUniformTexture, 0);
-        GLuint textureHandle = app->textures[app->diceTexIdx].handle;
-        glBindTexture(GL_TEXTURE_2D, textureHandle);
 
         const Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
         glUseProgram(programTexturedGeometry.handle);
+
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(app->programUniformTexture, 0);
+        GLuint textureHandle = app->framebuffer[FrameBuffer::Albedo];
+        glBindTexture(GL_TEXTURE_2D, textureHandle);
 
         renderQuad();
 
