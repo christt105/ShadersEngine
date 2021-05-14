@@ -230,11 +230,13 @@ void Init(App* app)
     // - programs (and retrieve uniform indices)
     app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY");
     Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
-    app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
+    app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uAlbedoTexture");
+    texturedGeometryProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
+    texturedGeometryProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
 
     app->texturedForwardProgramIdx = LoadProgram(app, "shaders.glsl", "FORWARD_SHADING");
     Program& texturedForwardProgram = app->programs[app->texturedForwardProgramIdx];
-    app->texturedMeshProgramIdx_uTexture = glGetUniformLocation(texturedForwardProgram.handle, "uTexture");
+    app->texturedMeshProgramIdx_uTexture = glGetUniformLocation(texturedForwardProgram.handle, "uAlbedoTexture");
     texturedForwardProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedForwardProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
     texturedForwardProgram.vertexInputLayout.attributes.push_back({ 2, 2 });
@@ -243,7 +245,7 @@ void Init(App* app)
 
     app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH");
     Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
-    app->texturedMeshProgramIdx_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uAlbedoTexture");
+    app->texturedMeshProgramIdx_uTexture2 = glGetUniformLocation(texturedMeshProgram.handle, "uAlbedoTexture");
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
     texturedMeshProgram.vertexInputLayout.attributes.push_back({ 2, 2 });
@@ -252,11 +254,11 @@ void Init(App* app)
 
     app->texturedLightProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_LIGHTS");
     Program& texturedLightProgram = app->programs[app->texturedLightProgramIdx];
-    app->texturedMeshProgramIdx_uAlbedo = glGetUniformLocation(texturedLightProgram.handle, "uAlbedoTexture");
-    app->texturedMeshProgramIdx_uPosition = glGetUniformLocation(texturedLightProgram.handle, "uPositionTexture");
-    app->texturedMeshProgramIdx_uNormals = glGetUniformLocation(texturedLightProgram.handle, "uNormalsTexture");
+    app->texturedMeshProgramIdx_uNormals    = glGetUniformLocation(texturedLightProgram.handle, "uNormalsTexture");
+    app->texturedMeshProgramIdx_uPosition   = glGetUniformLocation(texturedLightProgram.handle, "uPositionTexture");
+    app->texturedMeshProgramIdx_uAlbedo     = glGetUniformLocation(texturedLightProgram.handle, "uAlbedoTexture");
     texturedLightProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
-    texturedLightProgram.vertexInputLayout.attributes.push_back({ 2, 2 });
+    texturedLightProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     
     // - textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
@@ -284,7 +286,7 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 1.f, 2.f),0.6));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 1.f, -2.f), 0.8));
 
-    app->mode = Mode::Mode_Forward;
+    app->mode = Mode::Mode_Deferred;
 
     //Framebuffer
     for (int i = 0; i < (int)FrameBuffer::MAX; ++i) {
@@ -601,18 +603,6 @@ void Render(App* app)
         }
         UnmapBuffer(app->cBuffer);
 
-        /*glBindFramebuffer(GL_READ_FRAMEBUFFER, app->framebuffer[FrameBuffer::Framebuffer]);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y, 0, 0, app->displaySize.x, app->displaySize.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);*/
-
-        /*texturedMeshProgram = app->programs[app->texturedGeometryProgramIdx];
-        glUseProgram(texturedMeshProgram.handle);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::FinalRender]);
-        glUniform1i(app->programUniformTexture, 0);*/
-
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -621,7 +611,7 @@ void Render(App* app)
 
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(app->programUniformTexture, 0);
-        GLuint textureHandle = app->framebuffer[FrameBuffer::Albedo];
+        GLuint textureHandle = app->framebuffer[FrameBuffer::FinalRender];
         glBindTexture(GL_TEXTURE_2D, textureHandle);
 
         renderQuad();
@@ -685,7 +675,7 @@ void Render(App* app)
                 Material& submeshmaterial = app->materials[submeshMaterialIdx];
                 glActiveTexture(GL_TEXTURE0);
                 glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
-                glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+                glUniform1i(app->texturedMeshProgramIdx_uTexture2, 0);
 
                 Submesh& submesh = mesh.submeshes[i];
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
@@ -693,53 +683,72 @@ void Render(App* app)
         }
         UnmapBuffer(app->cBuffer);
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::Position]);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::Normals]);
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::Albedo]);
-        // also send light relevant uniforms
-        texturedMeshProgram = app->programs[app->texturedLightProgramIdx];
-        glUseProgram(texturedMeshProgram.handle);
-
-        MapBuffer(app->cBuffer, GL_WRITE_ONLY);
-
-        app->globlaParamsOffset = app->cBuffer.head;
-
-        PushVec3(app->cBuffer, app->camera.pos);
-
-        PushUInt(app->cBuffer, app->lights.size());
-
-        for (auto& light : app->lights)
+        //================================================================
         {
-            AlignHead(app->cBuffer, sizeof(glm::vec4));
+            glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            PushUInt(app->cBuffer, light.type);
-            PushVec3(app->cBuffer, light.color);
-            PushVec3(app->cBuffer, light.direction);
-            PushVec3(app->cBuffer, light.position);
+            texturedMeshProgram = app->programs[app->texturedLightProgramIdx];
+            glUseProgram(texturedMeshProgram.handle);
 
-            float constant = 1.0;
-            float linear = 0.7;
-            float quadratic = 1.8;
-            light.intensity = std::fmaxf(std::fmaxf(light.color.r, light.color.g), light.color.b);
-            (-linear + std::sqrtf(linear * linear - 4 * quadratic * (constant - (256.0 / 5.0) * light.intensity)))
-                / (2 * quadratic);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::Position]);
+            glUniform1i(app->texturedMeshProgramIdx_uPosition, 0);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::Normals]);
+            glUniform1i(app->texturedMeshProgramIdx_uNormals, 1);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::Albedo]);
+            glUniform1i(app->texturedMeshProgramIdx_uAlbedo, 2);
 
-            PushFloat(app->cBuffer, light.intensity);
+
+            //MapBuffer(app->cBuffer, GL_WRITE_ONLY);
+
+            //app->globlaParamsOffset = app->cBuffer.head;
+
+            //PushVec3(app->cBuffer, app->camera.pos);
+            //PushUInt(app->cBuffer, app->lights.size());
+
+            for (auto& light : app->lights)
+            {
+                //AlignHead(app->cBuffer, sizeof(glm::vec4));
+                //
+                //PushUInt(app->cBuffer, light.type);
+                //PushVec3(app->cBuffer, light.color);
+                //PushVec3(app->cBuffer, light.direction);
+                //PushVec3(app->cBuffer, light.position);
+
+                float constant = 1.0f;
+                float linear = 0.7f;
+                float quadratic = 1.8f;
+                light.intensity = std::fmaxf(std::fmaxf(light.color.r, light.color.g), light.color.b);
+                (-linear + std::sqrtf(linear * linear - 4 * quadratic * (constant - (256.0 / 5.0) * light.intensity)))
+                    / (2 * quadratic);
+
+                //PushFloat(app->cBuffer, light.intensity);
+            }
+            //app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
+
+            //glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);
+            //UnmapBuffer(app->cBuffer);
         }
 
-        glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);
+        // Este bloque, con el de arriba comentado, funciona ==============================================================================
+        /*{
+            glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glUniform1i(app->texturedMeshProgramIdx_uPosition, 0);
-        glUniform1i(app->texturedMeshProgramIdx_uNormals, 1);
-        glUniform1i(app->texturedMeshProgramIdx_uAlbedo, 2);
+            glUniform1i(app->programUniformTexture, 0);
+            glActiveTexture(GL_TEXTURE0);
+            GLuint textureHandle = app->framebuffer[FrameBuffer::FinalRender];
+            glBindTexture(GL_TEXTURE_2D, textureHandle);
+
+            const Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
+            glUseProgram(programTexturedGeometry.handle);
+        }*/
+        //=======================================================================================
 
         renderQuad();
-
-        UnmapBuffer(app->cBuffer);
     }break;
     default:
         break;

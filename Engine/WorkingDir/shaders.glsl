@@ -190,11 +190,6 @@ vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir,
 #endif
 #endif
 
-
-// NOTE: You can write several shaders in the same file if you want as
-// long as you embrace them within an #ifdef block (as you can see above).
-// The third parameter of the LoadProgram function in engine.cpp allows
-// chosing the shader you want to load by name.
 #ifdef SHOW_TEXTURED_MESH
 
 #if defined(VERTEX) ///////////////////////////////////////////////////
@@ -251,12 +246,6 @@ struct Light{
 
 };
 
-
-//---------------------------Function declaration--------------------------------------
-vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords);
-vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords);
-
-
 layout(binding = 0, std140) uniform GlobalParms
 {
 	vec3 			uCameraPos;
@@ -281,7 +270,7 @@ void main() {
 
 	vec3 normals = normalize(TBN * vNormals);
 
-	oColor 		= texture(uAlbedoTexture, vTexCoord);
+	oColor 		= texture(uAlbedoTexture, vTexCoord); //same as albedo
 	oNormals 	= vec4(vNormals, 1.0);
 	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
 	oLight		= vec4(1.0);
@@ -302,20 +291,20 @@ void main() {
 layout(location=0) in vec3 aPos;
 layout(location=1) in vec2 aTexCoord;
 
-struct Light{
+/*struct Light{
 	 unsigned int 	type; // 0: dir, 1: point
 	 vec3			color;
 	 vec3			direction;
 	 vec3			position;
 	 float 			intensity;
-};
+};*/
 
-layout(binding = 0, std140) uniform GlobalParms
+/*layout(binding = 0, std140) uniform GlobalParms
 {
 	vec3 			uCameraPos;
  	int 			uLightCount;
  	Light			uLight[16];
-};
+};*/
 
 
 out vec2 vTexCoord;
@@ -329,30 +318,29 @@ void main() {
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
 
-struct Light{
+/*struct Light{
 	 unsigned int 	type; // 0: dir, 1: point
 	 vec3			color;
 	 vec3			direction;
 	 vec3			position;
 	 float 			intensity;
-
-};
+};*/
 
 //---------------------------Function declaration--------------------------------------
-vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords);
-vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords);
+//vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords);
+//vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords);
 
 
-layout(binding = 0, std140) uniform GlobalParms
+/*layout(binding = 0, std140) uniform GlobalParms
 {
 	vec3 			uCameraPos;
 	int 			uLightCount;
 	Light			uLight[16];
-};
+};*/
 
-uniform sampler2D uAlbedoTexture;
-uniform sampler2D uPositionTexture;
-uniform sampler2D uNormalsTexture;
+//uniform sampler2D uPositionTexture;
+//uniform sampler2D uNormalsTexture;
+//uniform sampler2D uAlbedoTexture;
 
 in vec2 vTexCoord;
 
@@ -360,14 +348,14 @@ layout(location = 0) out vec4 oColor;
 
 void main() {
 
-	vec3 fragPos = texture(uPositionTexture, vTexCoord).rgb;
-	vec3 norms = texture(uNormalsTexture, vTexCoord).rgb;
-	vec3 diffuseCol = texture(uAlbedoTexture, vTexCoord).rgb;
+	//vec3 fragPos = texture(uPositionTexture, vTexCoord).rgb;
+	//vec3 norms = texture(uNormalsTexture, vTexCoord).rgb;
+	//vec3 diffuseCol = texture(uAlbedoTexture, vTexCoord).rgb;
 
-	vec3 viewDir = normalize(uCameraPos - fragPos);
-	vec3 result = vec3(0.0,0.0,0.0);
+	//vec3 viewDir = normalize(uCameraPos - fragPos);
+	//vec3 result = vec3(0.0,0.0,0.0);
 	
-	for(int i = 0; i < uLightCount; ++i)
+	/*for(int i = 0; i < uLightCount; ++i)
 	{			
 		if(uLight[i].type == 0)
 			result += CalculateDirectionalLight(uLight[i], norms, normalize(viewDir), vTexCoord);
@@ -376,14 +364,15 @@ void main() {
 				result += CalculatePointLight(uLight[i], norms, fragPos, normalize(viewDir), vTexCoord);
 			} 
 		}
-	}
+	}*/
 
-	oColor 	= vec4(result + diffuseCol * 0.2, 1.0);
-
+	//oColor = vec4(result + diffuseCol * 0.2, 1.0);
+	//oColor = vec4(fragPos, 1.0);
+	oColor = vec4(vTexCoord.rg, 1.0, 1.0);
 }
 
 
-vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords){
+/*vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords){
 	vec3 ambient = light.color;
     // Diffuse
     //vec3 fake_lightDir = normalize(light.lightPos - frag_pos);
@@ -417,9 +406,14 @@ vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir,
     float distance = length(light.position - frag_pos);
     float attenuation = 1/distance;      
 	return (diffuse + specular) * attenuation;
-}
+}*/
 
 
 
 #endif
 #endif
+
+// NOTE: You can write several shaders in the same file if you want as
+// long as you embrace them within an #ifdef block (as you can see above).
+// The third parameter of the LoadProgram function in engine.cpp allows
+// chosing the shader you want to load by name.
