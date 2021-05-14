@@ -359,6 +359,17 @@ void Gui(App* app)
 
     ImGui::Separator();
 
+    ImGui::Text("Mode");
+    if (ImGui::BeginCombo("Type", ModeToString(app->mode).c_str())) {
+        for (int i = 0; i < (int)Mode::Mode_Count; ++i) {
+            if (ImGui::Selectable(ModeToString((Mode)i).c_str(), app->mode == i))
+                app->mode = (Mode)i;
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Separator();
+
     ImGui::Text("Camera");
     if (ImGui::BeginCombo("Type", Camera::CameraModeToString(app->camera.mode).c_str())) {
         if (ImGui::Selectable("Orbit", app->camera.mode == Camera::CameraMode::ORBIT)) app->camera.mode = Camera::CameraMode::ORBIT;

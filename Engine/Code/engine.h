@@ -119,6 +119,20 @@ enum Mode
     Mode_Count
 };
 
+static std::string ModeToString(Mode m) {
+    switch (m)
+    {
+    case Mode_TexturedQuad:
+        return "Textured Quad";
+    case Mode_Forward:
+        return "Forward";
+    case Mode_Deferred:
+        return "Deferred";
+    }
+
+    return "None";
+}
+
 struct Entity {
     glm::mat4 mat = glm::mat4(1.0f);
     u32 model;
