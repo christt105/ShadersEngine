@@ -257,6 +257,7 @@ void Init(App* app)
     app->texturedMeshProgramIdx_uNormals    = glGetUniformLocation(texturedLightProgram.handle, "uNormalsTexture");
     app->texturedMeshProgramIdx_uPosition   = glGetUniformLocation(texturedLightProgram.handle, "uPositionTexture");
     app->texturedMeshProgramIdx_uAlbedo     = glGetUniformLocation(texturedLightProgram.handle, "uAlbedoTexture");
+    app->texturedMeshProgramIdx_uDepth      = glGetUniformLocation(texturedLightProgram.handle, "uDepthTexture");
     texturedLightProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedLightProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     
@@ -277,21 +278,24 @@ void Init(App* app)
     u32 pat = LoadModel(app, "Patrick/Patrick.obj");
 
     app->entities.push_back(Entity(glm::mat4(1.f), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-4.1f, 0.1f, -1.f)), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(4.1f, 0.1f, -1.f)), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(8.1f, 0.1f, -1.f)), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-8.1f, 0.1f, -1.f)), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, -1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 5.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 10.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 1.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 5.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 5.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 10.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 10.f)), pat));
 
-    //app->lights.push_back(Light(LightType::LightType_Directional, vec3(0.f, 1.f, 0.f), vec3(0.0, -1.0, -1.0), vec3(0.f, 10.f, 0.f), 1.0));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, 0.0), vec3(0.0, -1.0, 1.0), vec3(0.f, 2.f, -2.f), 1.0));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, 1.f, 2.f), 0.8));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 0.0), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, -2.f), 0.6));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.1, 0.5, 0.3), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, 2.f), 1.0));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.5, 0.3, 0.1), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, 2.f), 0.5));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.3, 0.1, 0.5), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, -2.f),0.3));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 1.f, 2.f),0.6));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 1.f, -2.f), 0.8));
+    app->lights.push_back(Light(LightType::LightType_Directional, vec3(0.f, 1.f, 0.f), vec3(0.0, -1.0, 1.0), vec3(0.f, 10.f,11.5f), 0.2));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 1.0), vec3(0.f, .1f, 1.9f), 100.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, .0), vec3(0.0, 1.0, 1.0), vec3(0.f, .1f, 5.9f), 12.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, 1.f, 11.f), 23.8));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 0.0), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, 5.f), 12.6));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.1, 0.5, 0.3), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, 2.f), 10.0));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.5, 0.3, 0.1), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, 11.f), 1.5));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.3, 0.1, 0.5), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, 5.f),10.3));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 1.f, 2.f), 14.8));
 
     app->mode = Mode::Mode_Deferred;
 
@@ -303,7 +307,12 @@ void Init(App* app)
     for (int i = (int)FrameBuffer::FinalRender; i < (int)FrameBuffer::Depth; ++i) {
         glGenTextures(1, &app->framebuffer[(FrameBuffer)i]);
         glBindTexture(GL_TEXTURE_2D, app->framebuffer[(FrameBuffer)i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        if (i == (int)FrameBuffer::Position || i == (int)FrameBuffer::Normals) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        }
+        else {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, app->displaySize.x, app->displaySize.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        }
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -404,6 +413,11 @@ void Gui(App* app)
         for (int i = (int)FrameBuffer::FinalRender; i < (int)FrameBuffer::MAX; ++i)
             if (ImGui::Selectable(FrameBufferToString((FrameBuffer)i).c_str())) sel = i;
         ImGui::EndCombo();
+    }
+
+    for (int i = 0; i < app->lights.size(); ++i) {
+
+    ImGui::DragFloat3(std::string("light" + std::to_string(i)).c_str(), (float*)&app->lights[i].position, 0.01f);
     }
 
     ImGui::Image((ImTextureID)app->framebuffer[(FrameBuffer)sel], ImVec2(ImGui::GetWindowWidth(), app->displaySize.y  * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
@@ -584,11 +598,11 @@ void Render(App* app)
             float constant = 1.0;
             float linear = 0.7;
             float quadratic = 1.8;
-            light.intensity = std::fmaxf(std::fmaxf(light.color.r, light.color.g), light.color.b);
-            (-linear + std::sqrtf(linear * linear - 4 * quadratic * (constant - (256.0 / 5.0) * light.intensity)))
+            light.radius = std::fmaxf(std::fmaxf(light.color.r, light.color.g), light.color.b);
+            (-linear + std::sqrtf(linear * linear - 4 * quadratic * (constant - (256.0 / 5.0) * light.radius)))
                 / (2 * quadratic);
 
-            PushFloat(app->cBuffer, light.intensity);
+            PushFloat(app->cBuffer, light.radius);
 
         }
         app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
@@ -719,6 +733,9 @@ void Render(App* app)
         glUniform1i(app->texturedMeshProgramIdx_uAlbedo, 2);
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::Albedo]);
+        glUniform1i(app->texturedMeshProgramIdx_uDepth, 3);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::Depth]);
 
         //MapBuffer(app->cBuffer, GL_WRITE_ONLY);
         AlignHead(app->cBuffer, app->uniformBlockAligment);
@@ -740,10 +757,10 @@ void Render(App* app)
             float constant = 1.0f;
             float linear = 0.7f;
             float quadratic = 1.8f;
-            light.intensity = std::fmaxf(std::fmaxf(light.color.r, light.color.g), light.color.b);
-            //(-linear + std::sqrtf(linear * linear - 4 * quadratic * (constant - (256.0 / 5.0) * light.intensity))) / (2 * quadratic);
-
-            PushFloat(app->cBuffer, light.intensity);
+          
+            PushFloat(app->cBuffer, light.radius);
+            PushFloat(app->cBuffer, linear);
+            PushFloat(app->cBuffer, quadratic);
         }
         app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
 

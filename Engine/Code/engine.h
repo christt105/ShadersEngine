@@ -165,8 +165,8 @@ struct Light
     vec3 color;
     vec3 direction;
     vec3 position;
-    float intensity;
-    Light(const LightType t, const vec3 c, vec3 dir, vec3 pos, float intensity): type(t),color(c),direction(dir),position(pos), intensity(intensity){}
+    float radius;
+    Light(const LightType t, const vec3 c, vec3 dir, vec3 pos, float intensity): type(t),color(c),direction(dir),position(pos), radius(intensity){}
 };
 
 
@@ -265,6 +265,7 @@ struct App
     GLuint texturedMeshProgramIdx_uAlbedo;
     GLuint texturedMeshProgramIdx_uPosition;
     GLuint texturedMeshProgramIdx_uNormals;
+    GLuint texturedMeshProgramIdx_uDepth;
 
     GLuint texturedLightProgramIdx_uLightColor;
     GLuint texturedLightProgramIdx_uViewProjection;
