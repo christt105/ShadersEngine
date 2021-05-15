@@ -267,6 +267,8 @@ void Init(App* app)
     app->texturedLightProgramIdx_uViewProjection = glGetUniformLocation(texturedSphereLightProgram.handle, "projectionView");
     app->texturedLightProgramIdx_uModel = glGetUniformLocation(texturedSphereLightProgram.handle, "model");
     texturedSphereLightProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
+    texturedSphereLightProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
+    texturedSphereLightProgram.vertexInputLayout.attributes.push_back({ 2, 3 });
     
     // - textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
@@ -287,15 +289,15 @@ void Init(App* app)
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 10.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 10.f)), pat));
 
-    app->lights.push_back(Light(LightType::LightType_Directional, vec3(0.f, 1.f, 0.f), vec3(0.0, -1.0, 1.0), vec3(0.f, 10.f,11.5f), 0.2));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 1.0), vec3(0.f, .1f, 1.9f), 100.f));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, .0), vec3(0.0, 1.0, 1.0), vec3(0.f, .1f, 5.9f), 12.f));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, 1.f, 11.f), 23.8));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 0.0), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, 5.f), 12.6));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.1, 0.5, 0.3), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, 2.f), 10.0));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.5, 0.3, 0.1), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, 11.f), 1.5));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.3, 0.1, 0.5), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, 5.f),10.3));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 1.f, 2.f), 14.8));
+    app->lights.push_back(Light(LightType::LightType_Directional, vec3(0.f, 1.f, 0.f), vec3(0.0, -1.0, 1.0), vec3(0.f, 10.f,11.5f), 0.2f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 1.0), vec3(0.f, .1f, 1.9f), 1.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, .0), vec3(0.0, 1.0, 1.0), vec3(0.f, .1f, 5.9f), 2.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, 1.f, 11.f), 3.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 0.0), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, 5.f), 2.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.1, 0.5, 0.3), vec3(0.0, -1.0, 1.0), vec3(8.f, 1.f, 2.f), 1.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.5, 0.3, 0.1), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, 11.f), 1.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.3, 0.1, 0.5), vec3(0.0, -1.0, 1.0), vec3(-8.f, 1.f, 5.f), 3.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 1.f, 2.f), 4.f));
 
     app->mode = Mode::Mode_Deferred;
 
@@ -407,17 +409,30 @@ void Gui(App* app)
 
     ImGui::Separator();
 
+    ImGui::Text("Lights");
+    for (int i = 0; i < app->lights.size(); ++i) {
+        ImGui::PushID(i);
+        if (app->lights[i].type == 0) { //Directional
+            ImGui::DragFloat3("direction", glm::value_ptr(app->lights[i].direction), 0.01f);
+            ImGui::DragFloat("intensity", &app->lights[i].radius, 0.01f);
+        }
+        else {
+            ImGui::DragFloat3("position", glm::value_ptr(app->lights[i].position), 0.01f);
+            ImGui::DragFloat("radius", &app->lights[i].radius, 0.01f);
+        }
+        ImGui::DragFloat3("color", glm::value_ptr(app->lights[i].color), 0.01f);
+        ImGui::PopID();
+        ImGui::NewLine();
+    }
+
+    ImGui::Separator();
+
     static int sel = (int)FrameBuffer::FinalRender;
     ImGui::Text("Target render");
     if (ImGui::BeginCombo("Target", FrameBufferToString((FrameBuffer)sel).c_str())) {
         for (int i = (int)FrameBuffer::FinalRender; i < (int)FrameBuffer::MAX; ++i)
             if (ImGui::Selectable(FrameBufferToString((FrameBuffer)i).c_str())) sel = i;
         ImGui::EndCombo();
-    }
-
-    for (int i = 0; i < app->lights.size(); ++i) {
-
-    ImGui::DragFloat3(std::string("light" + std::to_string(i)).c_str(), (float*)&app->lights[i].position, 0.01f);
     }
 
     ImGui::Image((ImTextureID)app->framebuffer[(FrameBuffer)sel], ImVec2(ImGui::GetWindowWidth(), app->displaySize.y  * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
@@ -782,7 +797,7 @@ void Render(App* app)
         for (unsigned int i = 0; i < app->lights.size(); ++i) {
             glm::mat4 mat = glm::mat4(1.f);
             mat = glm::translate(mat, app->lights[i].position);
-            mat = glm::scale(mat, vec3(app->lights[i].intensity));
+            mat = glm::scale(mat, vec3(app->lights[i].radius));
             glUniformMatrix4fv(app->texturedLightProgramIdx_uModel, 1, GL_FALSE, glm::value_ptr(mat));
             glUniform3fv(app->texturedLightProgramIdx_uLightColor, 1, glm::value_ptr(app->lights[i].color));
             renderSphere();

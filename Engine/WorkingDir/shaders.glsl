@@ -361,15 +361,20 @@ void main() {
 	
 	for(int i = 0; i < uLightCount; ++i)
 	{			
-		if (uLight[i].type == 0 && depth < 1) {
-			result += CalculateDirectionalLight(uLight[i], norms, normalize(viewDir), vTexCoord);
+		if (depth < 1.0) {
+			if (uLight[i].type == 0) {
+				result += CalculateDirectionalLight(uLight[i], norms, normalize(viewDir), vTexCoord);
+			}
+			else if (uLight[i].intensity > length(uLight[i].position - fragPos)) {
+					result += CalculatePointLight(uLight[i], norms, fragPos, viewDir, vTexCoord);
+			}
 		}
-		else if (uLight[i].intensity > length(uLight[i].position - fragPos)  && depth < 1) {
-				result += CalculatePointLight(uLight[i], norms, fragPos, viewDir, vTexCoord);
+		else {
+			result = vec3(0.2);
 		}
 	}
 
-	oColor = vec4(result + diffuseCol*0.2,1.0);
+	oColor = vec4(result + diffuseCol * 0.2, 1.0);
 }
 
 vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords) {
@@ -419,6 +424,8 @@ vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir,
 #if defined(VERTEX) ///////////////////////////////////////////////////
 
 layout(location=0) in vec3 aPos;
+layout(location=1) in vec2 aTexCoord;
+layout(location=2) in vec3 aNormals;
 
 uniform mat4 projectionView;
 uniform mat4 model;
@@ -434,7 +441,7 @@ layout(location = 0) out vec4 oColor;
 uniform vec3 lightColor;
 
 void main() {
-	oColor = vec4(lightColor, 0.3);
+	oColor = vec4(lightColor, 0.6);
 }
 
 #endif
