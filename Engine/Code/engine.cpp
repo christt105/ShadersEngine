@@ -386,6 +386,8 @@ void Gui(App* app)
         }
         ImGui::EndCombo();
     }
+
+    ImGui::Checkbox("Show sphere lights", &app->showSpheres);
     ImGui::PopID();
 
     ImGui::Separator();
@@ -410,19 +412,21 @@ void Gui(App* app)
     ImGui::Separator();
 
     ImGui::Text("Lights");
-    for (int i = 0; i < app->lights.size(); ++i) {
-        ImGui::PushID(i);
-        if (app->lights[i].type == 0) { //Directional
-            ImGui::DragFloat3("direction", glm::value_ptr(app->lights[i].direction), 0.01f);
-            ImGui::DragFloat("intensity", &app->lights[i].radius, 0.01f);
+    if (ImGui::CollapsingHeader("Edit")) {
+        for (int i = 0; i < app->lights.size(); ++i) {
+            ImGui::PushID(i);
+            if (app->lights[i].type == 0) { //Directional
+                ImGui::DragFloat3("direction", glm::value_ptr(app->lights[i].direction), 0.01f);
+                ImGui::DragFloat("intensity", &app->lights[i].radius, 0.01f);
+            }
+            else {
+                ImGui::DragFloat3("position", glm::value_ptr(app->lights[i].position), 0.01f);
+                ImGui::DragFloat("radius", &app->lights[i].radius, 0.01f);
+            }
+            ImGui::DragFloat3("color", glm::value_ptr(app->lights[i].color), 0.01f);
+            ImGui::PopID();
+            ImGui::NewLine();
         }
-        else {
-            ImGui::DragFloat3("position", glm::value_ptr(app->lights[i].position), 0.01f);
-            ImGui::DragFloat("radius", &app->lights[i].radius, 0.01f);
-        }
-        ImGui::DragFloat3("color", glm::value_ptr(app->lights[i].color), 0.01f);
-        ImGui::PopID();
-        ImGui::NewLine();
     }
 
     ImGui::Separator();
@@ -791,18 +795,19 @@ void Render(App* app)
         glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y, 0, 0, app->displaySize.x, app->displaySize.y, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        glUseProgram(app->programs[app->texturedSphereLightsProgramIdx].handle);
+        if (app->showSpheres) {
+            glUseProgram(app->programs[app->texturedSphereLightsProgramIdx].handle);
 
-        glUniformMatrix4fv(app->texturedLightProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(app->camera.GetViewMatrix(app->displaySize)));
-        for (unsigned int i = 0; i < app->lights.size(); ++i) {
-            glm::mat4 mat = glm::mat4(1.f);
-            mat = glm::translate(mat, app->lights[i].position);
-            mat = glm::scale(mat, vec3(app->lights[i].radius));
-            glUniformMatrix4fv(app->texturedLightProgramIdx_uModel, 1, GL_FALSE, glm::value_ptr(mat));
-            glUniform3fv(app->texturedLightProgramIdx_uLightColor, 1, glm::value_ptr(app->lights[i].color));
-            renderSphere();
+            glUniformMatrix4fv(app->texturedLightProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(app->camera.GetViewMatrix(app->displaySize)));
+            for (unsigned int i = 0; i < app->lights.size(); ++i) {
+                glm::mat4 mat = glm::mat4(1.f);
+                mat = glm::translate(mat, app->lights[i].position);
+                mat = glm::scale(mat, vec3(app->lights[i].radius));
+                glUniformMatrix4fv(app->texturedLightProgramIdx_uModel, 1, GL_FALSE, glm::value_ptr(mat));
+                glUniform3fv(app->texturedLightProgramIdx_uLightColor, 1, glm::value_ptr(app->lights[i].color));
+                renderSphere();
+            }
         }
-
         break;
     }
     default:

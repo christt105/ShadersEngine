@@ -249,6 +249,8 @@ struct App
     // Mode
     Mode mode;
 
+    bool showSpheres = true;
+
     // Embedded geometry (in-editor simple meshes such as
     // a screen filling quad, a cube, a sphere...)
     GLuint embeddedVertices;
