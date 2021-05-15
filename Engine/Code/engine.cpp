@@ -260,6 +260,13 @@ void Init(App* app)
     texturedLightProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedLightProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     
+    app->texturedSphereLightsProgramIdx = LoadProgram(app, "shaders.glsl", "DRAW_LIGHTS");
+    Program& texturedSphereLightProgram = app->programs[app->texturedSphereLightsProgramIdx];
+    app->texturedLightProgramIdx_uLightColor = glGetUniformLocation(texturedSphereLightProgram.handle, "lightColor");
+    app->texturedLightProgramIdx_uViewProjection = glGetUniformLocation(texturedSphereLightProgram.handle, "projectionView");
+    app->texturedLightProgramIdx_uModel = glGetUniformLocation(texturedSphereLightProgram.handle, "model");
+    texturedSphereLightProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
+    
     // - textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
     app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
@@ -360,6 +367,7 @@ void Gui(App* app)
     ImGui::Separator();
 
     ImGui::Text("Mode");
+    ImGui::PushID("##mode");
     if (ImGui::BeginCombo("Type", ModeToString(app->mode).c_str())) {
         for (int i = 0; i < (int)Mode::Mode_Count; ++i) {
             if (ImGui::Selectable(ModeToString((Mode)i).c_str(), app->mode == i))
@@ -367,15 +375,18 @@ void Gui(App* app)
         }
         ImGui::EndCombo();
     }
+    ImGui::PopID();
 
     ImGui::Separator();
 
     ImGui::Text("Camera");
+    ImGui::PushID("##camera");
     if (ImGui::BeginCombo("Type", Camera::CameraModeToString(app->camera.mode).c_str())) {
         if (ImGui::Selectable("Orbit", app->camera.mode == Camera::CameraMode::ORBIT)) app->camera.mode = Camera::CameraMode::ORBIT;
         if (ImGui::Selectable("FPS", app->camera.mode == Camera::CameraMode::FPS)) { app->camera.mode = Camera::CameraMode::FPS; app->camera.phi = -10.f; app->camera.theta = -90.f;}
         ImGui::EndCombo();
     }
+    ImGui::PopID();
     if (app->camera.mode == Camera::CameraMode::ORBIT) {
         ImGui::DragFloat("DistanceToOrigin", &app->camera.distanceToOrigin, 0.15f);
         ImGui::SliderFloat("phi", &app->camera.phi, 0.1f, 179.f, "%.1f");
@@ -740,7 +751,28 @@ void Render(App* app)
         UnmapBuffer(app->cBuffer);
 
         renderQuad();
-    }break;
+
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, app->framebuffer[FrameBuffer::Framebuffer]);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y, 0, 0, app->displaySize.x, app->displaySize.y, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        glUseProgram(app->programs[app->texturedSphereLightsProgramIdx].handle);
+
+        glUniformMatrix4fv(app->texturedLightProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(app->camera.GetViewMatrix(app->displaySize)));
+        for (unsigned int i = 0; i < app->lights.size(); ++i) {
+            glm::mat4 mat = glm::mat4(1.f);
+            mat = glm::translate(mat, app->lights[i].position);
+            mat = glm::scale(mat, vec3(app->lights[i].intensity));
+            glUniformMatrix4fv(app->texturedLightProgramIdx_uModel, 1, GL_FALSE, glm::value_ptr(mat));
+            glUniform3fv(app->texturedLightProgramIdx_uLightColor, 1, glm::value_ptr(app->lights[i].color));
+            renderSphere();
+        }
+
+        break;
+    }
     default:
         break;
     }
@@ -779,6 +811,101 @@ void renderQuad()
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
+}
+
+void renderSphere()
+{
+    static unsigned int sphereVAO = 0;
+    static unsigned int indexCount;
+
+    if (sphereVAO == 0)
+    {
+        glGenVertexArrays(1, &sphereVAO);
+
+        unsigned int vbo, ebo;
+        glGenBuffers(1, &vbo);
+        glGenBuffers(1, &ebo);
+
+        std::vector<glm::vec3> positions;
+        std::vector<glm::vec2> uv;
+        std::vector<glm::vec3> normals;
+        std::vector<unsigned int> indices;
+
+        const unsigned int X_SEGMENTS = 64;
+        const unsigned int Y_SEGMENTS = 64;
+        for (unsigned int y = 0; y <= Y_SEGMENTS; ++y)
+        {
+            for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+            {
+                float xSegment = (float)x / (float)X_SEGMENTS;
+                float ySegment = (float)y / (float)Y_SEGMENTS;
+                float xPos = std::cos(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+                float yPos = std::cos(ySegment * PI);
+                float zPos = std::sin(xSegment * 2.0f * PI) * std::sin(ySegment * PI);
+
+                positions.push_back(glm::vec3(xPos, yPos, zPos));
+                uv.push_back(glm::vec2(xSegment, ySegment));
+                normals.push_back(glm::vec3(xPos, yPos, zPos));
+            }
+        }
+
+        bool oddRow = false;
+        for (unsigned int y = 0; y < Y_SEGMENTS; ++y)
+        {
+            if (!oddRow) // even rows: y == 0, y == 2; and so on
+            {
+                for (unsigned int x = 0; x <= X_SEGMENTS; ++x)
+                {
+                    indices.push_back(y * (X_SEGMENTS + 1) + x);
+                    indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+                }
+            }
+            else
+            {
+                for (int x = X_SEGMENTS; x >= 0; --x)
+                {
+                    indices.push_back((y + 1) * (X_SEGMENTS + 1) + x);
+                    indices.push_back(y * (X_SEGMENTS + 1) + x);
+                }
+            }
+            oddRow = !oddRow;
+        }
+        indexCount = indices.size();
+
+        std::vector<float> data;
+        for (unsigned int i = 0; i < positions.size(); ++i)
+        {
+            data.push_back(positions[i].x);
+            data.push_back(positions[i].y);
+            data.push_back(positions[i].z);
+            if (uv.size() > 0)
+            {
+                data.push_back(uv[i].x);
+                data.push_back(uv[i].y);
+            }
+            if (normals.size() > 0)
+            {
+                data.push_back(normals[i].x);
+                data.push_back(normals[i].y);
+                data.push_back(normals[i].z);
+            }
+        }
+        glBindVertexArray(sphereVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(float), &data[0], GL_STATIC_DRAW);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int), &indices[0], GL_STATIC_DRAW);
+        float stride = (3 + 2 + 3) * sizeof(float);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, stride, (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, stride, (void*)(5 * sizeof(float)));
+    }
+
+    glBindVertexArray(sphereVAO);
+    glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 }
 
 void CheckOpenGLError(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)

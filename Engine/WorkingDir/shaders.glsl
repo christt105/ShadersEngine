@@ -146,8 +146,6 @@ void main() {
 	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
 	oLight		= vec4(result, 1.0);
 	oPosition   = vec4(vPos, 1.0);
-	
-	gl_FragDepth = gl_FragCoord.z - 0.1;
 }
 
 
@@ -275,8 +273,6 @@ void main() {
 	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
 	oLight		= vec4(1.0);
 	oPosition   = vec4(vPos, 1.0);
-	
-	gl_FragDepth = gl_FragCoord.z - 0.1;
 }
 
 
@@ -360,7 +356,7 @@ void main() {
 		if (uLight[i].type == 0) {
 			result += CalculateDirectionalLight(uLight[i], norms, normalize(viewDir), vTexCoord);
 		}
-		else if (uLight[i].intensity > 0) {
+		else if (uLight[i].intensity > 0.0) {
 				result += CalculatePointLight(uLight[i], norms, fragPos, normalize(viewDir), vTexCoord);
 		}
 	}
@@ -404,6 +400,34 @@ vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir,
 }
 
 
+
+#endif
+#endif
+
+
+
+#ifdef DRAW_LIGHTS
+
+#if defined(VERTEX) ///////////////////////////////////////////////////
+
+layout(location=0) in vec3 aPos;
+
+uniform mat4 projectionView;
+uniform mat4 model;
+
+void main() {
+	gl_Position = projectionView * model * vec4(aPos, 1.0);
+}
+
+#elif defined(FRAGMENT) ///////////////////////////////////////////////
+
+layout(location = 0) out vec4 oColor;
+
+uniform vec3 lightColor;
+
+void main() {
+	oColor = vec4(lightColor, 0.3);
+}
 
 #endif
 #endif

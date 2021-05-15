@@ -248,3 +248,34 @@ u32 LoadModel(App* app, const char* filename)
 
     return modelIdx;
 }
+
+/*u32 LoadSphere(App* app)
+{
+    static const float pi = 3.1416f;
+    const int H = 32;
+    const int V = 16;
+    struct Vertex { vec3 pos; vec3 norm; };
+    
+    Vertex sphere[H][V + 1];
+    for (int h = 0; h < H; ++h) {
+        for (int v = 0; v < V + 1; ++v) {
+            float nh = float(h) / H;
+            float nv = float(v) / V - 0.5f;
+            float angleh = 2 * pi * nh;
+            float anglev = -pi * nv;
+            sphere[h][v].pos = sphere[h][v].norm = { sinf(angleh) * cosf(anglev), -sinf(anglev), cosf(angleh) * cosf(anglev) };
+        }
+    }
+
+    unsigned int sphereIndices[H][V][6];
+    for (int h = 0; h < H; ++h) {
+        for (int v = 0; v < V; ++v) {
+            sphereIndices[h][v][0] = (h + 0) * (V + 1) + v;
+            sphereIndices[h][v][1] = (h + 0) * (V + 1) + v;
+            sphereIndices[h][v][2] = (h + 0) * (V + 1) + v;
+            sphereIndices[h][v][3] = (h + 0) * (V + 1) + v;
+            sphereIndices[h][v][4] = (h + 0) * (V + 1) + v;
+            sphereIndices[h][v][5] = (h + 0) * (V + 1) + v;
+        }
+    }
+}*/

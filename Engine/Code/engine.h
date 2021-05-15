@@ -237,6 +237,7 @@ struct App
     u32 texturedMeshProgramIdx;
     u32 texturedLightProgramIdx;
     u32 texturedForwardProgramIdx;
+    u32 texturedSphereLightsProgramIdx;
     
     // texture indices
     u32 diceTexIdx;
@@ -264,6 +265,10 @@ struct App
     GLuint texturedMeshProgramIdx_uAlbedo;
     GLuint texturedMeshProgramIdx_uPosition;
     GLuint texturedMeshProgramIdx_uNormals;
+
+    GLuint texturedLightProgramIdx_uLightColor;
+    GLuint texturedLightProgramIdx_uViewProjection;
+    GLuint texturedLightProgramIdx_uModel;
 
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
@@ -298,6 +303,7 @@ void Update(App* app);
 void Render(App* app);
 
 void renderQuad();
+void renderSphere();
 
 void APIENTRY CheckOpenGLError(GLenum source,
     GLenum type,
