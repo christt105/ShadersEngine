@@ -243,6 +243,8 @@ struct Light{
 	 vec3			direction;
 	 vec3			position;
 	 float 			intensity;
+	 float			linear;
+	 float			quadratic;
 
 };
 
@@ -271,7 +273,7 @@ void main() {
 	vec3 normals = normalize(TBN * vNormals);
 
 	oColor 		= texture(uAlbedoTexture, vTexCoord); //same as albedo
-	oNormals 	= vec4(vNormals, 1.0);
+	oNormals 	= vec4(normalize(vNormals), 1.0);
 	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
 	oLight		= vec4(1.0);
 	oPosition   = vec4(vPos, 1.0);
@@ -297,6 +299,8 @@ struct Light{
 	 vec3			direction;
 	 vec3			position;
 	 float 			intensity;
+	 float			linear;
+	 float			quadratic;
 };
 
 layout(binding = 0, std140) uniform GlobalParms
@@ -324,6 +328,8 @@ struct Light {
 	 vec3			direction;
 	 vec3			position;
 	 float 			intensity;
+	 float			linear;
+	 float			quadratic;
 };
 
 //---------------------------Function declaration--------------------------------------
@@ -341,6 +347,7 @@ layout(binding = 0, std140) uniform GlobalParms
 uniform sampler2D uPositionTexture;
 uniform sampler2D uNormalsTexture;
 uniform sampler2D uAlbedoTexture;
+uniform sampler2D uDepthTexture;
 
 in vec2 vTexCoord;
 
@@ -351,21 +358,22 @@ void main() {
 	vec3 fragPos = texture(uPositionTexture, vTexCoord).rgb;
 	vec3 norms = texture(uNormalsTexture, vTexCoord).rgb;
 	vec3 diffuseCol = texture(uAlbedoTexture, vTexCoord).rgb;
+	float depth = texture(uDepthTexture, vTexCoord).r;
 
 	vec3 viewDir = normalize(uCameraPos - fragPos);
 	vec3 result = vec3(0.0,0.0,0.0);
 	
 	for(int i = 0; i < uLightCount; ++i)
 	{			
-		if (uLight[i].type == 0) {
+		if (uLight[i].type == 0 && depth < 1) {
 			result += CalculateDirectionalLight(uLight[i], norms, normalize(viewDir), vTexCoord);
 		}
-		else if (uLight[i].intensity > 0) {
-				result += CalculatePointLight(uLight[i], norms, fragPos, normalize(viewDir), vTexCoord);
+		else if (uLight[i].intensity > length(uLight[i].position - fragPos)  && depth < 1) {
+				result += CalculatePointLight(uLight[i], norms, fragPos, viewDir, vTexCoord);
 		}
 	}
 
-	oColor = vec4(result + diffuseCol * 0.2, 1.0);
+	oColor = vec4(result + diffuseCol*0.2,1.0);
 }
 
 vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords) {
@@ -394,13 +402,13 @@ vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir,
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = ambient * diff;
      // Specul
-    vec3 reflectDir = reflect(-lightDir, normal);  
-    float spec = pow(max(dot(view_dir, reflectDir), 0.0), 0.0) * 0.01;//    vec3 specular = vec3(0);
-    vec3 specular = ambient * spec;
+    vec3 halfwayDir = normalize(lightDir + view_dir);  
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), 16.0);
+    vec3 specular = light.color * spec;
     // attenuati
     float distance = length(light.position - frag_pos);
-    float attenuation = 1/distance;      
-	return (diffuse + specular) * attenuation;
+    float attenuation = 1.0 / (1.0 + light.linear * distance + light.quadratic * distance * distance);      
+	return (diffuse + specular) * light.intensity * attenuation;
 }
 
 
