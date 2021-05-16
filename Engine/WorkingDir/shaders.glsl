@@ -432,6 +432,8 @@ uniform vec3 lightColor;
 
 void main() {
 	oColor = vec4(lightColor, 0.6);
+		gl_FragDepth = gl_FragCoord.z - 0.1;
+
 }
 
 #endif
