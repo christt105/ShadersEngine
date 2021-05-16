@@ -235,16 +235,6 @@ void main() {
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
 
-struct Light{
-	 unsigned int 	type; // 0: dir, 1: point
-	 vec3			color;
-	 vec3			direction;
-	 vec3			position;
-	 float 			intensity;
-	 float			linear;
-	 float			quadratic;
-
-};
 
 layout(binding = 0, std140) uniform GlobalParms
 {
@@ -275,6 +265,7 @@ void main() {
 	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
 	oLight		= vec4(1.0);
 	oPosition   = vec4(vPos, 1.0);
+	gl_FragDepth = gl_FragCoord.z - 0.1;
 }
 
 
@@ -380,7 +371,6 @@ void main() {
 vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords) {
 	vec3 ambient = light.color;
     // Diffuse
-    //vec3 fake_lightDir = normalize(light.lightPos - frag_pos);
     vec3 lightDir = normalize(-light.direction);
     float diff = max(dot(lightDir, normal), 0.0);
     vec3 diffuse = ambient *  diff;
