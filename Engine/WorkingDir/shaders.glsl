@@ -402,8 +402,6 @@ vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir,
 	return (diffuse + specular) * light.intensity * attenuation;
 }
 
-
-
 #endif
 #endif
 
@@ -418,7 +416,12 @@ layout(location=1) in vec2 aTexCoord;
 layout(location=2) in vec3 aNormals;
 
 uniform mat4 projectionView;
-uniform mat4 model;
+
+layout(binding = 0, std140) uniform LocalParms
+{
+	mat4 			model;
+ 	vec3 			lightColor;
+};
 
 void main() {
 	gl_Position = projectionView * model * vec4(aPos, 1.0);
@@ -428,7 +431,11 @@ void main() {
 
 layout(location = 0) out vec4 oColor;
 
-uniform vec3 lightColor;
+layout(binding = 0, std140) uniform LocalParms
+{
+	mat4 			model;
+ 	vec3 			lightColor;
+};
 
 void main() {
 	oColor = vec4(lightColor, 0.6);
