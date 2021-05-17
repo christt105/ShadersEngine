@@ -354,9 +354,9 @@ void main() {
 	{			
 		if (depth < 1.0) {
 			if (uLight[i].type == 0) {
-				result += CalculateDirectionalLight(uLight[i], norms, normalize(viewDir), vTexCoord);
+				result += CalculateDirectionalLight(uLight[i], norms, viewDir, vTexCoord);
 			}
-			else if (uLight[i].intensity > length(uLight[i].position - fragPos)) {
+			else if (uLight[i].intensity > 0) {
 					result += CalculatePointLight(uLight[i], norms, fragPos, viewDir, vTexCoord);
 			}
 		}
@@ -387,14 +387,14 @@ vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 tex
 
 vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords) {
     // Ambient
-    vec3 ambient = light.color;
+    vec3 ambient = light.color * 0.1;
     // diffuse shadi
     vec3 lightDir = normalize(light.position - frag_pos);
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = ambient * diff;
      // Specul
     vec3 halfwayDir = normalize(lightDir + view_dir);  
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 16.0);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), 20.1);
     vec3 specular = light.color * spec;
     // attenuati
     float distance = length(light.position - frag_pos);
