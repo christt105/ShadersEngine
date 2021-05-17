@@ -176,7 +176,7 @@ struct Camera {
         FPS,
         ORBIT
     };
-    CameraMode mode = ORBIT;
+    CameraMode mode = FPS;
     static std::string CameraModeToString(CameraMode m) {
         switch (m)
         {
@@ -189,8 +189,8 @@ struct Camera {
     }
 
     float distanceToOrigin = 12.f;
-    float phi{ 90.f }, theta{ 90.f };
-    vec3 pos;
+    float phi{ 0.f }, theta{ -90.f };
+    vec3 pos = vec3(-1.5f, 4.f, 30.f);
     vec3 front = vec3(0.f, 0.f, -1.f);
     vec3 up = vec3(0.f, 1.f, 0.f);
     vec3 right = vec3(1.f, 0.f, 0.f);
@@ -306,6 +306,7 @@ void Update(App* app);
 void Render(App* app);
 
 void renderQuad();
+void renderCube();
 void renderSphere();
 
 void APIENTRY CheckOpenGLError(GLenum source,

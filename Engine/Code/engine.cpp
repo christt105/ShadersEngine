@@ -185,7 +185,7 @@ u32 LoadTexture2D(App* app, const char* filepath)
 
 void Init(App* app)
 {
-    // TODO: Initialize your resources here!
+    // Initialize your resources here!
     // - vertex buffers
     VertexV3V2 vertices[] = {
         {   vec3(-0.5f, -0.5f, 0.f), vec2(0.f, 0.f) },
@@ -555,10 +555,8 @@ void Render(App* app)
     glClearColor(0.2f, 0.2f, 0.2f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // - set the viewport
     glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
-    // - set the blending state
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -567,31 +565,18 @@ void Render(App* app)
     {
     case Mode_TexturedQuad:
     {
-        // TODO: Draw your textured quad here!
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // - bind the texture into unit 0
         glUniform1i(app->programUniformTexture, 0);
         glActiveTexture(GL_TEXTURE0);
         GLuint textureHandle = app->textures[app->diceTexIdx].handle;
         glBindTexture(GL_TEXTURE_2D, textureHandle);
 
-        // - bind the program
-        //   (...and make its texture sample from unit 0)
         const Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
         glUseProgram(programTexturedGeometry.handle);
 
-        renderQuad();/*
-
-        // - bind the vao
-        glBindVertexArray(app->vao);
-
-        // - glDrawElements() !!!
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-
-        glBindVertexArray(0);
-        glUseProgram(0);*/
+        renderQuad();
     }
     break;
     case Mode_Forward: {
@@ -618,8 +603,7 @@ void Render(App* app)
             float linear = 0.7;
             float quadratic = 1.8;
             light.radius = std::fmaxf(std::fmaxf(light.color.r, light.color.g), light.color.b);
-            (-linear + std::sqrtf(linear * linear - 4 * quadratic * (constant - (256.0 / 5.0) * light.radius)))
-                / (2 * quadratic);
+            //(-linear + std::sqrtf(linear * linear - 4 * quadratic * (constant - (256.0 / 5.0) * light.radius))) / (2 * quadratic);
 
             PushFloat(app->cBuffer, light.radius);
 
@@ -685,7 +669,6 @@ void Render(App* app)
 
         PushUInt(app->cBuffer, app->lights.size());
 
-
         app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
 
         for (auto& e : app->entities) {
@@ -718,7 +701,6 @@ void Render(App* app)
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
             }
         }
-        //UnmapBuffer(app->cBuffer);
 
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -738,7 +720,6 @@ void Render(App* app)
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, app->framebuffer[FrameBuffer::Depth]);
 
-        //MapBuffer(app->cBuffer, GL_WRITE_ONLY);
         AlignHead(app->cBuffer, app->uniformBlockAligment);
 
         app->globlaParamsOffset = app->cBuffer.head;
@@ -769,8 +750,6 @@ void Render(App* app)
 
         renderQuad();
 
-        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         glBindFramebuffer(GL_READ_FRAMEBUFFER, app->framebuffer[FrameBuffer::Framebuffer]);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y, 0, 0, app->displaySize.x, app->displaySize.y, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
@@ -793,7 +772,10 @@ void Render(App* app)
 
                 glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle,localParamsOffset, localParamsSize);
 
-                renderSphere();
+                if (app->lights[i].type == LightType_Point)
+                    renderSphere();
+                else
+                    renderCube();
             }
         }
         UnmapBuffer(app->cBuffer);
@@ -802,11 +784,6 @@ void Render(App* app)
     default:
         break;
     }
-
-    /*glBindFramebuffer(GL_READ_FRAMEBUFFER, app->framebuffer[FrameBuffer::Framebuffer]);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-    glBlitFramebuffer(0, 0, app->displaySize.x, app->displaySize.y, 0, 0, app->displaySize.x, app->displaySize.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);*/
 }
 
 void renderQuad()
@@ -836,6 +813,79 @@ void renderQuad()
     }
     glBindVertexArray(quadVAO);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
+}
+
+void renderCube()
+{
+    static unsigned int cubeVAO = 0;
+    static unsigned int cubeVBO = 0;
+    // initialize (if necessary)
+    if (cubeVAO == 0)
+    {
+        float vertices[] = {
+            // back face
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+            -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+            // front face
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+            -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+            // left face
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            // right face
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+            // bottom face
+            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+             1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+             1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+             1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+            -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+            -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+            // top face
+            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+             1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+             1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+             1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+            -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+            -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+        };
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+        // fill buffer
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        // link vertex attributes
+        glBindVertexArray(cubeVAO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+    // render Cube
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
 }
 
