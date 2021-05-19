@@ -299,7 +299,7 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.3, 0.1, 0.5), vec3(0.0, -1.0, 1.0), vec3(-13.f, 6.f, 5.f), 10.f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));
 
-    app->mode = Mode::Mode_Deferred;
+    app->mode = Mode::Mode_Forward;
 
     //Framebuffer
     for (int i = 0; i < (int)FrameBuffer::MAX; ++i) {
@@ -598,14 +598,14 @@ void Render(App* app)
             PushVec3(app->cBuffer, light.color);
             PushVec3(app->cBuffer, light.direction);
             PushVec3(app->cBuffer, light.position);
-
-            float constant = 1.0;
-            float linear = 0.7;
-            float quadratic = 1.8;
-            light.radius = std::fmaxf(std::fmaxf(light.color.r, light.color.g), light.color.b);
-            //(-linear + std::sqrtf(linear * linear - 4 * quadratic * (constant - (256.0 / 5.0) * light.radius))) / (2 * quadratic);
+            float constant = 0.5f;
+            float linear = 0.5f;
+            float quadratic = 1.f;
 
             PushFloat(app->cBuffer, light.radius);
+            PushFloat(app->cBuffer, linear);
+            PushFloat(app->cBuffer, quadratic);
+           
 
         }
         app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
@@ -621,6 +621,9 @@ void Render(App* app)
             e.localParamsOffset = app->cBuffer.head;
             PushMat4(app->cBuffer, e.mat);
             PushMat4(app->cBuffer, viewMat);
+            
+           
+
             e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
 
             glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);

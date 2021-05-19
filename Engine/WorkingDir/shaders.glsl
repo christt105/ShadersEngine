@@ -42,13 +42,17 @@ layout(location=3) in vec3 aTangents;
 layout(location=4) in vec3 aBiTangents;
 
 
+
 struct Light{
 	 unsigned int 	type; // 0: dir, 1: point
 	 vec3			color;
 	 vec3			direction;
 	 vec3			position;
 	 float 			intensity;
+	 float			linear;
+	 float			quadratic;
 };
+
 
 layout(binding = 0, std140) uniform GlobalParms
 {
@@ -88,14 +92,17 @@ void main() {
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
 
+
 struct Light{
 	 unsigned int 	type; // 0: dir, 1: point
 	 vec3			color;
 	 vec3			direction;
 	 vec3			position;
 	 float 			intensity;
-
+	 float			linear;
+	 float			quadratic;
 };
+
 
 
 //---------------------------Function declaration--------------------------------------
@@ -170,19 +177,19 @@ vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 tex
 vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords)
 {
     // Ambient
-    vec3 ambient = light.color;
+     vec3 ambient = light.color;
     // diffuse shadi
     vec3 lightDir = normalize(light.position - frag_pos);
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = ambient * diff;
      // Specul
-    vec3 reflectDir = reflect(-lightDir, normal);  
-    float spec = pow(max(dot(view_dir, reflectDir), 0.0), 0.0) * 0.01;//    vec3 specular = vec3(0);
-    vec3 specular = ambient * spec;
+    vec3 halfwayDir = normalize(lightDir + view_dir);  
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), 20.1);
+    vec3 specular = light.color * spec;
     // attenuati
     float distance = length(light.position - frag_pos);
-    float attenuation = 1/distance;      
-	return (diffuse + specular) * attenuation;
+    float attenuation = 1.0 / (1.0 + light.linear * distance + light.quadratic * distance * distance);      
+	return (diffuse + specular) * light.intensity * attenuation;
 }
 
 #endif
@@ -387,7 +394,7 @@ vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 tex
 
 vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords) {
     // Ambient
-    vec3 ambient = light.color * 0.1;
+    vec3 ambient = light.color;
     // diffuse shadi
     vec3 lightDir = normalize(light.position - frag_pos);
     float diff = max(dot(normal, lightDir), 0.0);
