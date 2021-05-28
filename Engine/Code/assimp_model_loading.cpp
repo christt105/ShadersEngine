@@ -50,6 +50,7 @@ void ProcessAssimpMesh(const aiScene* scene, aiMesh *mesh, Mesh *myMesh, u32 bas
             vertices.push_back(-mesh->mBitangents[i].y);
             vertices.push_back(-mesh->mBitangents[i].z);
         }
+
     }
 
     // process indices

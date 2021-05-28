@@ -269,6 +269,12 @@ void Init(App* app)
     texturedSphereLightProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedSphereLightProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     texturedSphereLightProgram.vertexInputLayout.attributes.push_back({ 2, 3 });
+
+    app->baseModelProgramIdx = LoadProgram(app, "shaders.glsl", "DRAW_BASE_MODEL");
+    Program& texturedBaseProgram = app->programs[app->baseModelProgramIdx];
+    app->BaseModelProgramIdx_uViewProjection = glGetUniformLocation(texturedBaseProgram.handle, "uWorldViewProjectionMatrix");
+    texturedBaseProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
+    texturedBaseProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
     
     // - textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
@@ -299,7 +305,9 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.3, 0.1, 0.5), vec3(0.0, -1.0, 1.0), vec3(-13.f, 6.f, 5.f), 10.f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));
 
-    app->mode = Mode::Mode_Forward;
+    app->island = LoadModel(app, "WaterScene/low_poly_nature/volcano.obj");
+
+    app->mode = Mode::Mode_Water;
 
     //Framebuffer
     for (int i = 0; i < (int)FrameBuffer::MAX; ++i) {
@@ -742,7 +750,7 @@ void Render(App* app)
             float constant = 0.5f;
             float linear = 0.5f;
             float quadratic = 1.f;
-          
+
             PushFloat(app->cBuffer, light.radius);
             PushFloat(app->cBuffer, linear);
             PushFloat(app->cBuffer, quadratic);
@@ -761,7 +769,7 @@ void Render(App* app)
         if (app->showSpheres) {
             glUseProgram(app->programs[app->texturedSphereLightsProgramIdx].handle);
             glUniformMatrix4fv(app->texturedLightProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(app->camera.GetViewMatrix(app->displaySize)));
-            
+
             for (unsigned int i = 0; i < app->lights.size(); ++i) {
                 AlignHead(app->cBuffer, app->uniformBlockAligment);
 
@@ -773,7 +781,7 @@ void Render(App* app)
                 PushVec3(app->cBuffer, app->lights[i].color);
                 int localParamsSize = app->cBuffer.head - localParamsOffset;
 
-                glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle,localParamsOffset, localParamsSize);
+                glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, localParamsOffset, localParamsSize);
 
                 if (app->lights[i].type == LightType_Point)
                     renderSphere();
@@ -782,6 +790,44 @@ void Render(App* app)
             }
         }
         UnmapBuffer(app->cBuffer);
+        break;
+    }
+    case Mode_Water: {
+        Program& texturedMeshProgram = app->programs[app->baseModelProgramIdx];
+        glUseProgram(texturedMeshProgram.handle);
+
+        Model& model = app->models[app->island];
+        Mesh& mesh = app->meshes[model.meshIdx];
+
+        glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
+        glUniformMatrix4fv(app->BaseModelProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
+
+        for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
+            GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
+            glBindVertexArray(vao);
+
+            u32 submeshMaterialIdx = model.materialIdx[i];
+            Material& submeshmaterial = app->materials[submeshMaterialIdx];
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
+            glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+
+            Submesh& submesh = mesh.submeshes[i];
+            glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        const Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
+        glUseProgram(programTexturedGeometry.handle);
+
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(app->programUniformTexture, 0);
+        GLuint textureHandle = app->framebuffer[FrameBuffer::FinalRender];
+        glBindTexture(GL_TEXTURE_2D, textureHandle);
+
+        renderQuad();
         break;
     }
     default:

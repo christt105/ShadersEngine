@@ -446,8 +446,36 @@ layout(binding = 0, std140) uniform LocalParms
 
 void main() {
 	oColor = vec4(lightColor, 0.6);
-		gl_FragDepth = gl_FragCoord.z - 0.1;
+	gl_FragDepth = gl_FragCoord.z - 0.1;
+}
 
+#endif
+#endif
+
+#ifdef DRAW_BASE_MODEL
+
+#if defined(VERTEX) ///////////////////////////////////////////////////
+
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNormals;
+
+uniform mat4 uWorldViewProjectionMatrix;
+
+out vec3 vNormals;
+
+void main() {
+	gl_Position = uWorldViewProjectionMatrix * vec4(aPos, 1.0);
+	vNormals = mat3(transpose(inverse(mat4(1.0)))) * aNormals;
+}
+
+#elif defined(FRAGMENT) ///////////////////////////////////////////////
+
+layout(location = 0) out vec4 oColor;
+
+in vec3 vNormals;
+
+void main() {
+	oColor = vec4(vNormals.xyz, 1.0);
 }
 
 #endif
