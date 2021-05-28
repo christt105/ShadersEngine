@@ -146,6 +146,14 @@ struct Entity {
     Entity(const glm::mat4& m, u32 mod) : mat(m), model(mod){}
 };
 
+struct WaterTile {
+    glm::mat4 mat = glm::mat4(1.f);
+
+    void Render() const;
+    WaterTile() {}
+    WaterTile(const glm::mat4& m) : mat(m) {}
+};
+
 enum LightType
 {
     LightType_Directional,
@@ -245,6 +253,7 @@ struct App
     
     //WATER
     u32 baseModelProgramIdx;
+    u32 waterProgramIdx;
 
     // texture indices
     u32 diceTexIdx;
@@ -282,6 +291,9 @@ struct App
 
     GLuint BaseModelProgramIdx_uViewProjection;
 
+    GLuint WaterProgramIdx_uViewProjection;
+    GLuint WaterProgramIdx_uModelMatrix;
+
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
 
@@ -292,7 +304,9 @@ struct App
     std::vector<Program> programs;
 
     std::vector<Entity> entities;
+
     u32 island = 0U;
+    WaterTile water;
 
     Camera camera;
     std::vector<Light> lights;

@@ -481,6 +481,31 @@ void main() {
 #endif
 #endif
 
+#ifdef WATER_SHADER
+
+#if defined(VERTEX) ///////////////////////////////////////////////////
+
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec2 aTexCoord;
+
+uniform mat4 uWorldViewProjectionMatrix;
+uniform mat4 uWorldMatrix;
+
+void main() {
+	gl_Position = uWorldViewProjectionMatrix * uWorldMatrix * vec4(aPos, 1.0);
+}
+
+#elif defined(FRAGMENT) ///////////////////////////////////////////////
+
+layout(location = 0) out vec4 oColor;
+
+void main() {
+	oColor = vec4(0.0, 1.0, 1.0, 1.0);
+}
+
+#endif
+#endif
+
 // NOTE: You can write several shaders in the same file if you want as
 // long as you embrace them within an #ifdef block (as you can see above).
 // The third parameter of the LoadProgram function in engine.cpp allows

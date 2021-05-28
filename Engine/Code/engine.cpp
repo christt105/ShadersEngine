@@ -275,6 +275,13 @@ void Init(App* app)
     app->BaseModelProgramIdx_uViewProjection = glGetUniformLocation(texturedBaseProgram.handle, "uWorldViewProjectionMatrix");
     texturedBaseProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedBaseProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
+
+    app->waterProgramIdx = LoadProgram(app, "shaders.glsl", "WATER_SHADER");
+    Program& texturedWaterProgram = app->programs[app->waterProgramIdx];
+    app->WaterProgramIdx_uViewProjection = glGetUniformLocation(texturedWaterProgram.handle, "uWorldViewProjectionMatrix");
+    app->WaterProgramIdx_uModelMatrix = glGetUniformLocation(texturedWaterProgram.handle, "uWorldMatrix");
+    texturedWaterProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
+    texturedWaterProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     
     // - textures
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
@@ -306,6 +313,7 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));
 
     app->island = LoadModel(app, "WaterScene/low_poly_nature/volcano.obj");
+    app->water = WaterTile(glm::scale(glm::translate(glm::mat4(1.f), vec3(4.7f, 4.55f, 2.5f)), vec3(4.f, 1.f, 6.f)));
 
     app->mode = Mode::Mode_Water;
 
@@ -816,6 +824,13 @@ void Render(App* app)
             glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
         }
 
+        glUseProgram(app->programs[app->waterProgramIdx].handle);
+
+        glUniformMatrix4fv(app->WaterProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
+        glUniformMatrix4fv(app->WaterProgramIdx_uModelMatrix, 1, GL_FALSE, glm::value_ptr(app->water.mat));
+
+        app->water.Render();
+
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -833,6 +848,36 @@ void Render(App* app)
     default:
         break;
     }
+}
+
+void WaterTile::Render() const
+{
+    static unsigned int quadVAO = 0;
+    static unsigned int quadVBO;
+
+    if (quadVAO == 0)
+    {
+        float quadVertices[] = {
+            // positions        // texture Coords
+            -1.0f, 0.0f,  1.0f, 0.0f, 1.0f,
+            -1.0f, 0.0f, -1.0f, 0.0f, 0.0f,
+             1.0f, 0.0f,  1.0f, 1.0f, 1.0f,
+             1.0f, 0.0f, -1.0f, 1.0f, 0.0f,
+        };
+        // setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindVertexArray(0);
 }
 
 void renderQuad()
