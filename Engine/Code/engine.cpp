@@ -273,6 +273,7 @@ void Init(App* app)
     app->baseModelProgramIdx = LoadProgram(app, "shaders.glsl", "DRAW_BASE_MODEL");
     Program& texturedBaseProgram = app->programs[app->baseModelProgramIdx];
     app->BaseModelProgramIdx_uViewProjection = glGetUniformLocation(texturedBaseProgram.handle, "uWorldViewProjectionMatrix");
+    app->BaseModelProgramIdx_uPlane = glGetUniformLocation(texturedBaseProgram.handle, "plane");
     texturedBaseProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedBaseProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
 
@@ -396,8 +397,20 @@ void Init(App* app)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, size[0], size[1], 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+    glGenTextures(1, &app->wTexBase);
+    glBindTexture(GL_TEXTURE_2D, app->wTexBase);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size[0], size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
     
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &app->wFboBase);
+    glBindFramebuffer(GL_FRAMEBUFFER, app->wFboBase);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, app->wTexBase, 0);
 
     glGenFramebuffers(1, &app->wFboReflect);
     glBindFramebuffer(GL_FRAMEBUFFER, app->wFboReflect);
@@ -504,15 +517,39 @@ void Gui(App* app)
 
     ImGui::Separator();
 
-    static int sel = (int)FrameBuffer::FinalRender;
     ImGui::Text("Target render");
-    if (ImGui::BeginCombo("Target", FrameBufferToString((FrameBuffer)sel).c_str())) {
-        for (int i = (int)FrameBuffer::FinalRender; i < (int)FrameBuffer::MAX; ++i)
-            if (ImGui::Selectable(FrameBufferToString((FrameBuffer)i).c_str())) sel = i;
-        ImGui::EndCombo();
-    }
+    if (app->mode == Mode::Mode_Water) {
+        static int sel = 0;
+        static const char* wtargets[] = { "Final", "Reflection", "Refract" };
+        if (ImGui::BeginCombo("Target", wtargets[sel])) {
+            for (int i = 0; i < 2; ++i)
+                if (ImGui::Selectable(wtargets[i])) sel = i;
+            ImGui::EndCombo();
+        }
 
-    ImGui::Image((ImTextureID)app->framebuffer[(FrameBuffer)sel], ImVec2(ImGui::GetWindowWidth(), app->displaySize.y  * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
+        switch (sel)
+        {
+        case 0:
+            ImGui::Image((ImTextureID)app.w, ImVec2(ImGui::GetWindowWidth(), app->displaySize.y * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
+            break;
+        case 1:
+            break;
+        case 2:
+            break;
+        default:
+            break;
+        }
+    }
+    else {
+        static int sel = (int)FrameBuffer::FinalRender;
+        if (ImGui::BeginCombo("Target", FrameBufferToString((FrameBuffer)sel).c_str())) {
+            for (int i = (int)FrameBuffer::FinalRender; i < (int)FrameBuffer::MAX; ++i)
+                if (ImGui::Selectable(FrameBufferToString((FrameBuffer)i).c_str())) sel = i;
+            ImGui::EndCombo();
+        }
+
+        ImGui::Image((ImTextureID)app->framebuffer[(FrameBuffer)sel], ImVec2(ImGui::GetWindowWidth(), app->displaySize.y * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
+    }
 
     ImGui::End();
 }
@@ -857,13 +894,8 @@ void Render(App* app)
         UnmapBuffer(app->cBuffer);
         break;
     }
-    case Mode_Water: {
+    case Mode::Mode_Water: {
         glBindFramebuffer(GL_FRAMEBUFFER, app->wFboReflect);
-        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
-        glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
-
-        glClearColor(0.2f, 0.2f, 0.2f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
@@ -872,13 +904,23 @@ void Render(App* app)
 
         glEnable(GL_DEPTH_TEST);
 
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glEnable(GL_CLIP_DISTANCE0);
+
+        glClearColor(0.2f, 0.2f, 0.2f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         Program& texturedMeshProgram = app->programs[app->baseModelProgramIdx];
         glUseProgram(texturedMeshProgram.handle);
+
+        Camera reflectionCamera = app->camera;
+        //reflectionCamera.pos.y = -reflectionCamera.pos.y;
+        //reflectionCamera.phi = -reflectionCamera.phi;
 
         Model& model = app->models[app->island];
         Mesh& mesh = app->meshes[model.meshIdx];
 
-        glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
+        glm::mat4 viewMat = reflectionCamera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
         glUniformMatrix4fv(app->BaseModelProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
 
         for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
@@ -902,6 +944,8 @@ void Render(App* app)
 
         app->water.Render();
 
+        glDisable(GL_CLIP_DISTANCE0);
+
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -918,6 +962,16 @@ void Render(App* app)
     default:
         break;
     }
+}
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="cam"></param>
+/// <param name="colorAttach"></param>
+/// <param name="type">0 reflection, 1 refraction</param>
+void RenderWaterScene(const Camera& cam, GLenum colorAttach, int type) {
+    
 }
 
 void WaterTile::Render() const

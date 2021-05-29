@@ -461,10 +461,13 @@ layout(location=1) in vec3 aNormals;
 
 uniform mat4 uWorldViewProjectionMatrix;
 
+uniform vec4 plane = vec4(0.0, 1.0, 0.0, 1.0);
+
 out vec3 vNormals;
 
 void main() {
 	gl_Position = uWorldViewProjectionMatrix * vec4(aPos, 1.0);
+	gl_ClipDistance[0] = dot(vec4(aPos, 1.0), plane);
 	vNormals = mat3(transpose(inverse(mat4(1.0)))) * aNormals;
 }
 

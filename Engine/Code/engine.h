@@ -314,12 +314,15 @@ struct App
 
     GLuint WaterProgramIdx_uViewProjection;
     GLuint WaterProgramIdx_uModelMatrix;
+    GLuint BaseModelProgramIdx_uPlane;
 
+    GLuint wTexBase = 0U;
     GLuint wTexReflection = 0U;
     GLuint wTexRefraction = 0U;
     GLuint wDepthReflection = 0U;
     GLuint wDepthRefraction = 0U;
 
+    GLuint wFboBase = 0U;
     GLuint wFboReflect = 0U;
     GLuint wFboRefract = 0U;
 
