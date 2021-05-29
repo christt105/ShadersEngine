@@ -212,6 +212,8 @@ struct Camera {
     vec3 up = vec3(0.f, 1.f, 0.f);
     vec3 right = vec3(1.f, 0.f, 0.f);
 
+    static float moveSpeed;
+
     glm::mat4 GetViewMatrix(const vec2& size) {
         float Phi = glm::radians(phi);
         float Theta = glm::radians(theta);
@@ -319,6 +321,8 @@ struct App
 
     GLuint WaterProgramIdx_uViewProjection;
     GLuint WaterProgramIdx_uModelMatrix;
+    GLuint WaterProgramIdx_uReflectionTex;
+    GLuint WaterProgramIdx_uRefractionTex;
     GLuint BaseModelProgramIdx_uPlane;
 
     GLuint wTexBase = 0U;

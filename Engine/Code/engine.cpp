@@ -15,6 +15,8 @@
 
 #define BINDING(b) b
 
+float Camera::moveSpeed;
+
 GLuint CreateProgramFromSource(String programSource, const char* shaderName)
 {
     GLchar  infoLogBuffer[1024] = {};
@@ -199,6 +201,8 @@ void Init(App* app)
         0, 2, 3
     };
 
+    Camera::moveSpeed = 10.f;
+
     glGenBuffers(1, &app->embeddedVertices);
     glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -281,6 +285,8 @@ void Init(App* app)
     Program& texturedWaterProgram = app->programs[app->waterProgramIdx];
     app->WaterProgramIdx_uViewProjection = glGetUniformLocation(texturedWaterProgram.handle, "uWorldViewProjectionMatrix");
     app->WaterProgramIdx_uModelMatrix = glGetUniformLocation(texturedWaterProgram.handle, "uWorldMatrix");
+    app->WaterProgramIdx_uReflectionTex = glGetUniformLocation(texturedWaterProgram.handle, "reflectionTex");
+    app->WaterProgramIdx_uRefractionTex = glGetUniformLocation(texturedWaterProgram.handle, "refractionTex");
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     
@@ -291,7 +297,7 @@ void Init(App* app)
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-    u32 pat = LoadModel(app, "Patrick/Patrick.obj");
+    /*u32 pat = LoadModel(app, "Patrick/Patrick.obj");
 
     app->entities.push_back(Entity(glm::mat4(1.f), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 5.f)), pat));
@@ -311,9 +317,9 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.1, 0.5, 0.3), vec3(0.0, -1.0, 1.0), vec3(13.f, 6.f, 2.f), 10.f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.5, 0.3, 0.1), vec3(0.0, -1.0, 1.0), vec3(-13.f, 2.f, 11.f), 3.f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.3, 0.1, 0.5), vec3(0.0, -1.0, 1.0), vec3(-13.f, 6.f, 5.f), 10.f));
-    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));
+    app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));*/
 
-    app->island = LoadModel(app, "WaterScene/low_poly_nature/volcano.obj");
+    app->island = LoadModel(app, "WaterScene/low_poly_nature/2/volcano.obj");
     app->water = WaterTile(vec3(4.7f, 4.55f, 2.5f), vec2(4.f, 6.f));
 
     app->mode = Mode::Mode_Water;
@@ -505,6 +511,7 @@ void Gui(App* app)
     }
     else {
         ImGui::DragFloat3("Position", &app->camera.pos.x);
+        ImGui::DragFloat("MoveSpeed", &Camera::moveSpeed, 0.05f);
     }
 
     ImGui::Separator();
@@ -586,22 +593,22 @@ void Update(App* app)
     }
     else {
         if (app->input.keys[Key::K_W] == ButtonState::BUTTON_PRESSED) {
-            app->camera.pos += app->camera.front * 20.f * app->deltaTime;
+            app->camera.pos += app->camera.front * Camera::moveSpeed * app->deltaTime;
         }
         if (app->input.keys[Key::K_A] == ButtonState::BUTTON_PRESSED) {
-            app->camera.pos -= app->camera.right * 20.f * app->deltaTime;
+            app->camera.pos -= app->camera.right * Camera::moveSpeed * app->deltaTime;
         }
         if (app->input.keys[Key::K_S] == ButtonState::BUTTON_PRESSED) {
-            app->camera.pos -= app->camera.front * 20.f * app->deltaTime;
+            app->camera.pos -= app->camera.front * Camera::moveSpeed * app->deltaTime;
         }
         if (app->input.keys[Key::K_D] == ButtonState::BUTTON_PRESSED) {
-            app->camera.pos += app->camera.right * 20.f * app->deltaTime;
+            app->camera.pos += app->camera.right * Camera::moveSpeed * app->deltaTime;
         }
         if (app->input.keys[Key::K_R] == ButtonState::BUTTON_PRESSED) {
-            app->camera.pos += app->camera.up * 20.f * app->deltaTime;
+            app->camera.pos += app->camera.up * Camera::moveSpeed * app->deltaTime;
         }
         if (app->input.keys[Key::K_F] == ButtonState::BUTTON_PRESSED) {
-            app->camera.pos -= app->camera.up * 20.f * app->deltaTime;
+            app->camera.pos -= app->camera.up * Camera::moveSpeed * app->deltaTime;
         }
 
         if (app->input.mouseButtons[0] == ButtonState::BUTTON_PRESSED) {
@@ -1042,6 +1049,13 @@ void Render(App* app)
 
             glUniformMatrix4fv(app->WaterProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
             glUniformMatrix4fv(app->WaterProgramIdx_uModelMatrix, 1, GL_FALSE, glm::value_ptr(app->water.mat));
+
+            glUniform1i(app->WaterProgramIdx_uReflectionTex, 0);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, app->wTexReflection);
+            glUniform1i(app->WaterProgramIdx_uRefractionTex, 1);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, app->wTexRefraction);
 
             app->water.Render();
 

@@ -494,16 +494,33 @@ layout(location=1) in vec2 aTexCoord;
 uniform mat4 uWorldViewProjectionMatrix;
 uniform mat4 uWorldMatrix;
 
+out vec4 clipSpace;
+
 void main() {
-	gl_Position = uWorldViewProjectionMatrix * uWorldMatrix * vec4(aPos, 1.0);
+	clipSpace = uWorldViewProjectionMatrix * uWorldMatrix * vec4(aPos, 1.0);
+	gl_Position = clipSpace;
 }
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
 
 layout(location = 0) out vec4 oColor;
 
+in vec4 clipSpace;
+
+uniform sampler2D reflectionTex;
+uniform sampler2D refractionTex;
+
 void main() {
-	oColor = vec4(0.0, 1.0, 1.0, 1.0);
+
+	vec2 ndc = (clipSpace.xy/clipSpace.w) / 2.0 + 0.5;
+	vec2 reflectTexCoords = vec2(ndc.x, -ndc.y);
+	vec2 refractTexCoords = vec2(ndc.x,  ndc.y);
+
+	vec4 reflectCol = texture(reflectionTex, reflectTexCoords);
+	vec4 refractCol = texture(refractionTex, refractTexCoords);
+
+	//oColor = vec4(0.0, 1.0, 1.0, 1.0);
+	oColor = mix(mix(reflectCol, refractCol, 0.5), vec4(0.0, 1.0, 1.0, 1.0), 0.5);
 }
 
 #endif
