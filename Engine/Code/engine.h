@@ -147,11 +147,16 @@ struct Entity {
 };
 
 struct WaterTile {
+    glm::vec3 pos;
+    glm::vec2 size;
+
     glm::mat4 mat = glm::mat4(1.f);
 
     void Render() const;
     WaterTile() {}
-    WaterTile(const glm::mat4& m) : mat(m) {}
+    WaterTile(const glm::vec3& pos, const glm::vec2& size) : pos(pos), size(size) {
+        mat = glm::scale(glm::translate(mat, pos), vec3(size.x, 1.f, size.y));
+    }
 };
 
 enum LightType
@@ -317,6 +322,7 @@ struct App
     GLuint BaseModelProgramIdx_uPlane;
 
     GLuint wTexBase = 0U;
+    GLuint wDepthBase = 0U;
     GLuint wTexReflection = 0U;
     GLuint wTexRefraction = 0U;
     GLuint wDepthReflection = 0U;

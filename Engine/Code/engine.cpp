@@ -314,7 +314,7 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));
 
     app->island = LoadModel(app, "WaterScene/low_poly_nature/volcano.obj");
-    app->water = WaterTile(glm::scale(glm::translate(glm::mat4(1.f), vec3(4.7f, 4.55f, 2.5f)), vec3(4.f, 1.f, 6.f)));
+    app->water = WaterTile(vec3(4.7f, 4.55f, 2.5f), vec2(4.f, 6.f));
 
     app->mode = Mode::Mode_Water;
 
@@ -405,12 +405,24 @@ void Init(App* app)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size[0], size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    glGenTextures(1, &app->wDepthBase);
+    glBindTexture(GL_TEXTURE_2D, app->wDepthBase);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, size[0], size[1], 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
     
     glBindTexture(GL_TEXTURE_2D, 0);
 
     glGenFramebuffers(1, &app->wFboBase);
     glBindFramebuffer(GL_FRAMEBUFFER, app->wFboBase);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, app->wTexBase, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, app->wDepthBase, 0);
+    CheckFramebufferStatus();
+    glDrawBuffers(1, &app->wFboBase);
+    glBindFramebuffer(GL_FRAMEBUFFER, NULL);
 
     glGenFramebuffers(1, &app->wFboReflect);
     glBindFramebuffer(GL_FRAMEBUFFER, app->wFboReflect);
@@ -522,7 +534,7 @@ void Gui(App* app)
         static int sel = 0;
         static const char* wtargets[] = { "Final", "Reflection", "Refract" };
         if (ImGui::BeginCombo("Target", wtargets[sel])) {
-            for (int i = 0; i < 2; ++i)
+            for (int i = 0; i < 3; ++i)
                 if (ImGui::Selectable(wtargets[i])) sel = i;
             ImGui::EndCombo();
         }
@@ -530,11 +542,13 @@ void Gui(App* app)
         switch (sel)
         {
         case 0:
-            ImGui::Image((ImTextureID)app.w, ImVec2(ImGui::GetWindowWidth(), app->displaySize.y * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
+            ImGui::Image((ImTextureID)app->wTexBase, ImVec2(ImGui::GetWindowWidth(), app->displaySize.y * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
             break;
         case 1:
+            ImGui::Image((ImTextureID)app->wTexReflection, ImVec2(ImGui::GetWindowWidth(), app->displaySize.y * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
             break;
         case 2:
+            ImGui::Image((ImTextureID)app->wTexRefraction, ImVec2(ImGui::GetWindowWidth(), app->displaySize.y * ImGui::GetWindowWidth() / app->displaySize.x), ImVec2(0.f, 1.f), ImVec2(1.f, 0.f));
             break;
         default:
             break;
@@ -895,56 +909,143 @@ void Render(App* app)
         break;
     }
     case Mode::Mode_Water: {
-        glBindFramebuffer(GL_FRAMEBUFFER, app->wFboReflect);
+        //REFLECTION
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, app->wFboReflect);
 
-        glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        glEnable(GL_DEPTH_TEST);
+            glEnable(GL_DEPTH_TEST);
 
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        glEnable(GL_CLIP_DISTANCE0);
+            glDrawBuffer(GL_COLOR_ATTACHMENT0);
+            glEnable(GL_CLIP_DISTANCE0);
 
-        glClearColor(0.2f, 0.2f, 0.2f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glClearColor(0.2f, 0.2f, 0.2f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        Program& texturedMeshProgram = app->programs[app->baseModelProgramIdx];
-        glUseProgram(texturedMeshProgram.handle);
+            Program& texturedMeshProgram = app->programs[app->baseModelProgramIdx];
+            glUseProgram(texturedMeshProgram.handle);
 
-        Camera reflectionCamera = app->camera;
-        //reflectionCamera.pos.y = -reflectionCamera.pos.y;
-        //reflectionCamera.phi = -reflectionCamera.phi;
+            Camera reflectionCamera = app->camera;
+            reflectionCamera.pos.y -= 2.f * (app->camera.pos.y - app->water.pos.y);
+            reflectionCamera.phi = -reflectionCamera.phi;
 
-        Model& model = app->models[app->island];
-        Mesh& mesh = app->meshes[model.meshIdx];
+            Model& model = app->models[app->island];
+            Mesh& mesh = app->meshes[model.meshIdx];
 
-        glm::mat4 viewMat = reflectionCamera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
-        glUniformMatrix4fv(app->BaseModelProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
+            glm::mat4 viewMat = reflectionCamera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
+            glUniformMatrix4fv(app->BaseModelProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
 
-        for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
-            GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
-            glBindVertexArray(vao);
+            glUniform4f(app->BaseModelProgramIdx_uPlane, 0.f, 1.f, 0.f, -app->water.pos.y);
 
-            u32 submeshMaterialIdx = model.materialIdx[i];
-            Material& submeshmaterial = app->materials[submeshMaterialIdx];
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
-            glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+            for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
+                GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
+                glBindVertexArray(vao);
 
-            Submesh& submesh = mesh.submeshes[i];
-            glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
+                u32 submeshMaterialIdx = model.materialIdx[i];
+                Material& submeshmaterial = app->materials[submeshMaterialIdx];
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
+                glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+
+                Submesh& submesh = mesh.submeshes[i];
+                glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
+            }
         }
 
-        glUseProgram(app->programs[app->waterProgramIdx].handle);
+        //REFRACTION
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, app->wFboRefract);
 
-        glUniformMatrix4fv(app->WaterProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
-        glUniformMatrix4fv(app->WaterProgramIdx_uModelMatrix, 1, GL_FALSE, glm::value_ptr(app->water.mat));
+            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
-        app->water.Render();
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        glDisable(GL_CLIP_DISTANCE0);
+            glEnable(GL_DEPTH_TEST);
+
+            glDrawBuffer(GL_COLOR_ATTACHMENT0);
+            glEnable(GL_CLIP_DISTANCE0);
+
+            glClearColor(0.2f, 0.2f, 0.2f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            Program& texturedMeshProgram = app->programs[app->baseModelProgramIdx];
+            glUseProgram(texturedMeshProgram.handle);
+
+            Model& model = app->models[app->island];
+            Mesh& mesh = app->meshes[model.meshIdx];
+
+            glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
+            glUniformMatrix4fv(app->BaseModelProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
+
+            glUniform4f(app->BaseModelProgramIdx_uPlane, 0.f, -1.f, 0.f, app->water.pos.y);
+
+            for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
+                GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
+                glBindVertexArray(vao);
+
+                u32 submeshMaterialIdx = model.materialIdx[i];
+                Material& submeshmaterial = app->materials[submeshMaterialIdx];
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
+                glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+
+                Submesh& submesh = mesh.submeshes[i];
+                glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
+            }
+        }
+
+        //BASE
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, app->wFboBase);
+            glDisable(GL_CLIP_DISTANCE0);
+
+            glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+            glEnable(GL_DEPTH_TEST);
+
+            glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+            glClearColor(0.2f, 0.2f, 0.2f, 1.f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
+            glUniformMatrix4fv(app->BaseModelProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
+
+            Model& model = app->models[app->island];
+            Mesh& mesh = app->meshes[model.meshIdx];
+            Program& texturedMeshProgram = app->programs[app->baseModelProgramIdx];
+
+            for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
+                GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
+                glBindVertexArray(vao);
+
+                u32 submeshMaterialIdx = model.materialIdx[i];
+                Material& submeshmaterial = app->materials[submeshMaterialIdx];
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
+                glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+
+                Submesh& submesh = mesh.submeshes[i];
+                glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
+            }
+
+            //WATER
+            glUseProgram(app->programs[app->waterProgramIdx].handle);
+
+            glUniformMatrix4fv(app->WaterProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
+            glUniformMatrix4fv(app->WaterProgramIdx_uModelMatrix, 1, GL_FALSE, glm::value_ptr(app->water.mat));
+
+            app->water.Render();
+
+        }
 
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -954,7 +1055,7 @@ void Render(App* app)
 
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(app->programUniformTexture, 0);
-        glBindTexture(GL_TEXTURE_2D, app->wTexReflection);
+        glBindTexture(GL_TEXTURE_2D, app->wTexBase);
 
         renderQuad();
         break;
