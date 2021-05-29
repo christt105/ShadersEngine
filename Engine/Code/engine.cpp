@@ -288,6 +288,7 @@ void Init(App* app)
     app->WaterProgramIdx_uModelMatrix = glGetUniformLocation(texturedWaterProgram.handle, "uWorldMatrix");
     app->WaterProgramIdx_uReflectionTex = glGetUniformLocation(texturedWaterProgram.handle, "reflectionTex");
     app->WaterProgramIdx_uRefractionTex = glGetUniformLocation(texturedWaterProgram.handle, "refractionTex");
+    app->WaterProgramIdx_uDudvTex = glGetUniformLocation(texturedWaterProgram.handle, "dudvMap");
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     
@@ -321,6 +322,11 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));*/
 
     app->island = LoadModel(app, "WaterScene/low_poly_nature/2/volcano.obj");
+    app->wTexDudv = LoadTexture2D(app, "WaterScene/waterDUDV.png");
+    glBindTexture(GL_TEXTURE_2D, app->wTexDudv);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glBindTexture(GL_TEXTURE_2D, NULL);
     app->water = WaterTile(vec3(4.7f, 2.534f, 2.5f), vec2(4.f, 6.f));
 
     app->mode = Mode::Mode_Water;
@@ -1049,10 +1055,12 @@ void Render(App* app)
             glBindTexture(GL_TEXTURE_2D, app->wTexReflection);
             glUniform1i(app->WaterProgramIdx_uRefractionTex, 1);
             glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, app->wTexRefraction);
+            glBindTexture(GL_TEXTURE_2D, app->wTexDudv);
+            glUniform1i(app->WaterProgramIdx_uDudvTex, 2);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, app->textures[app->wTexDudv].handle);
 
             app->water.Render();
-
         }
 
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);

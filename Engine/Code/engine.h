@@ -323,6 +323,7 @@ struct App
     GLuint WaterProgramIdx_uModelMatrix;
     GLuint WaterProgramIdx_uReflectionTex;
     GLuint WaterProgramIdx_uRefractionTex;
+    GLuint WaterProgramIdx_uDudvTex;
     GLuint BaseModelProgramIdx_uPlane;
     GLuint BaseModelProgramIdx_uFaceColor;
 
@@ -332,6 +333,8 @@ struct App
     GLuint wTexRefraction = 0U;
     GLuint wDepthReflection = 0U;
     GLuint wDepthRefraction = 0U;
+
+    GLuint wTexDudv = 0U;
 
     GLuint wFboBase = 0U;
     GLuint wFboReflect = 0U;
