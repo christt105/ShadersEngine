@@ -277,7 +277,7 @@ void Init(App* app)
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-    u32 cliff = LoadModel(app, "Cliff/source/cliff.fbx");
+    u32 cliff = LoadModel(app, "Cliff/eyeyey/a.obj");
 
     app->entities.push_back(Entity(glm::mat4(1.f), cliff));
     /*app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 5.f)), pat));
@@ -685,7 +685,7 @@ void Render(App* app)
             e.localParamsOffset = app->cBuffer.head;
             PushMat4(app->cBuffer, e.mat);
             PushMat4(app->cBuffer, viewMat);
-            PushUInt(app->cBuffer, 0);
+            PushUInt(app->cBuffer, 1);
             e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
 
             glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);
