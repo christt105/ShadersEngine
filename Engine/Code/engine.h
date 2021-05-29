@@ -324,6 +324,7 @@ struct App
     GLuint WaterProgramIdx_uReflectionTex;
     GLuint WaterProgramIdx_uRefractionTex;
     GLuint BaseModelProgramIdx_uPlane;
+    GLuint BaseModelProgramIdx_uFaceColor;
 
     GLuint wTexBase = 0U;
     GLuint wDepthBase = 0U;

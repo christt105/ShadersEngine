@@ -278,6 +278,7 @@ void Init(App* app)
     Program& texturedBaseProgram = app->programs[app->baseModelProgramIdx];
     app->BaseModelProgramIdx_uViewProjection = glGetUniformLocation(texturedBaseProgram.handle, "uWorldViewProjectionMatrix");
     app->BaseModelProgramIdx_uPlane = glGetUniformLocation(texturedBaseProgram.handle, "plane");
+    app->BaseModelProgramIdx_uFaceColor = glGetUniformLocation(texturedBaseProgram.handle, "faceColor");
     texturedBaseProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedBaseProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
 
@@ -320,7 +321,7 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));*/
 
     app->island = LoadModel(app, "WaterScene/low_poly_nature/2/volcano.obj");
-    app->water = WaterTile(vec3(4.7f, 4.55f, 2.5f), vec2(4.f, 6.f));
+    app->water = WaterTile(vec3(4.7f, 2.534f, 2.5f), vec2(4.f, 6.f));
 
     app->mode = Mode::Mode_Water;
 
@@ -694,8 +695,7 @@ void Render(App* app)
     glEnable(GL_DEPTH_TEST);
     switch (app->mode)
     {
-    case Mode_TexturedQuad:
-    {
+    case Mode_TexturedQuad: {
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -708,8 +708,8 @@ void Render(App* app)
         glUseProgram(programTexturedGeometry.handle);
 
         renderQuad();
+        break;
     }
-    break;
     case Mode_Forward: {
         Program& texturedMeshProgram = app->programs[app->texturedForwardProgramIdx];
         glUseProgram(texturedMeshProgram.handle);
@@ -954,9 +954,7 @@ void Render(App* app)
 
                 u32 submeshMaterialIdx = model.materialIdx[i];
                 Material& submeshmaterial = app->materials[submeshMaterialIdx];
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
-                glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+                glUniform3fv(app->BaseModelProgramIdx_uFaceColor, 1, glm::value_ptr(submeshmaterial.albedo));
 
                 Submesh& submesh = mesh.submeshes[i];
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
@@ -997,9 +995,7 @@ void Render(App* app)
 
                 u32 submeshMaterialIdx = model.materialIdx[i];
                 Material& submeshmaterial = app->materials[submeshMaterialIdx];
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
-                glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+                glUniform3fv(app->BaseModelProgramIdx_uFaceColor, 1, glm::value_ptr(submeshmaterial.albedo));
 
                 Submesh& submesh = mesh.submeshes[i];
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
@@ -1036,9 +1032,7 @@ void Render(App* app)
 
                 u32 submeshMaterialIdx = model.materialIdx[i];
                 Material& submeshmaterial = app->materials[submeshMaterialIdx];
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
-                glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+                glUniform3fv(app->BaseModelProgramIdx_uFaceColor, 1, glm::value_ptr(submeshmaterial.albedo));
 
                 Submesh& submesh = mesh.submeshes[i];
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
