@@ -278,7 +278,9 @@ void Init(App* app)
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-    u32 cliff = LoadModel(app, "Cliff/eyeyey/a.obj");
+    u32 cliff = LoadModel(app, "Cliff2/rocks.obj");
+    //u32 cliff = LoadModel(app, "Cliff/eyeyey/a.obj");
+
 
     app->entities.push_back(Entity(glm::mat4(1.f), cliff));
     /*app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 5.f)), pat));
@@ -290,8 +292,8 @@ void Init(App* app)
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 10.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 10.f)), pat));*/
 
-    app->lights.push_back(Light(LightType::LightType_Directional, vec3(1.f, 1.f, 1.f), vec3(0.0, -1.0, -1.0), vec3(0.f, 10.f,11.5f), 0.2f));
-    /*app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 1.0), vec3(0.f, 2.1f, 1.9f), 2.f));
+    app->lights.push_back(Light(LightType::LightType_Directional, vec3(1.f, 1.f, 1.f), vec3(0.89, 1.0, -1.0), vec3(0.f, 10.f,11.5f), 0.9f));
+   /* app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 1.0), vec3(0.f, 2.1f, 1.9f), 2.f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, .0), vec3(0.0, 1.0, 1.0), vec3(0.f, 2.1f, 5.9f), 5.f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, 3.f, 11.f), 15.f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 0.0), vec3(0.0, -1.0, 1.0), vec3(13.f, 2.f, 5.f), 2.f));
@@ -703,7 +705,7 @@ void Render(App* app)
                 glUniform1i(app->texturedMeshProgramIdx_uTexture2, 0);
 
                 glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.normalsTextureIdx].handle);
+                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.bumpTextureIdx].handle);
                 glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
 
                 Submesh& submesh = mesh.submeshes[i];
