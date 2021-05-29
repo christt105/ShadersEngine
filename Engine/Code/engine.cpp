@@ -358,6 +358,66 @@ void Init(App* app)
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT4, app->framebuffer[FrameBuffer::Position], 0);
     glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, app->framebuffer[FrameBuffer::Depth], 0);
 
+    CheckFramebufferStatus();
+
+    glDrawBuffers(5, &app->framebuffer[FrameBuffer::FinalRender]);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // WATER =============================================================================
+    int size[] = { app->displaySize.x, app->displaySize.y };
+    glGenTextures(1, &app->wTexReflection);
+    glBindTexture(GL_TEXTURE_2D, app->wTexReflection);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size[0], size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    glGenTextures(1, &app->wTexRefraction);
+    glBindTexture(GL_TEXTURE_2D, app->wTexRefraction);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size[0], size[1], 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    glGenTextures(1, &app->wDepthReflection);
+    glBindTexture(GL_TEXTURE_2D, app->wDepthReflection);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, size[0], size[1], 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+
+    glGenTextures(1, &app->wDepthRefraction);
+    glBindTexture(GL_TEXTURE_2D, app->wDepthRefraction);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, size[0], size[1], 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &app->wFboReflect);
+    glBindFramebuffer(GL_FRAMEBUFFER, app->wFboReflect);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, app->wTexReflection, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, app->wDepthReflection, 0);
+    CheckFramebufferStatus();
+    glDrawBuffers(1, &app->wFboReflect);
+    glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+
+    glGenFramebuffers(1, &app->wFboRefract);
+    glBindFramebuffer(GL_FRAMEBUFFER, app->wFboRefract);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, app->wTexRefraction, 0);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, app->wDepthRefraction, 0);
+    CheckFramebufferStatus();
+    glDrawBuffers(1, &app->wFboReflect);
+    glBindFramebuffer(GL_FRAMEBUFFER, NULL);
+}
+
+void CheckFramebufferStatus()
+{
     GLenum framebufferStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (framebufferStatus != GL_FRAMEBUFFER_COMPLETE) {
         switch (framebufferStatus)
@@ -373,9 +433,6 @@ void Init(App* app)
         default:                                            ELOG("Unknown franebuffer status error | %i", framebufferStatus);
         }
     }
-
-    glDrawBuffers(5, &app->framebuffer[FrameBuffer::FinalRender]);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void Gui(App* app)
@@ -801,6 +858,20 @@ void Render(App* app)
         break;
     }
     case Mode_Water: {
+        glBindFramebuffer(GL_FRAMEBUFFER, app->wFboReflect);
+        GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
+        glDrawBuffers(ARRAY_COUNT(drawBuffers), drawBuffers);
+
+        glClearColor(0.2f, 0.2f, 0.2f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        glViewport(0, 0, app->displaySize.x, app->displaySize.y);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        glEnable(GL_DEPTH_TEST);
+
         Program& texturedMeshProgram = app->programs[app->baseModelProgramIdx];
         glUseProgram(texturedMeshProgram.handle);
 
@@ -839,8 +910,7 @@ void Render(App* app)
 
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(app->programUniformTexture, 0);
-        GLuint textureHandle = app->framebuffer[FrameBuffer::FinalRender];
-        glBindTexture(GL_TEXTURE_2D, textureHandle);
+        glBindTexture(GL_TEXTURE_2D, app->wTexReflection);
 
         renderQuad();
         break;

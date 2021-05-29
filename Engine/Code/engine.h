@@ -160,12 +160,12 @@ enum LightType
     LightType_Point
 };
 
-    enum class FrameBuffer {
-        Framebuffer,
-        FinalRender, Albedo, Normals, Light, Position,
-        Depth,
-        MAX
-    };
+enum class FrameBuffer {
+    Framebuffer,
+    FinalRender, Albedo, Normals, Light, Position,
+    Depth,
+    MAX
+};
 
 /*struct FrameBuffer {
     Attachment ids[(int)Attachment::MAX];
@@ -251,10 +251,6 @@ struct App
     u32 texturedForwardProgramIdx;
     u32 texturedSphereLightsProgramIdx;
     
-    //WATER
-    u32 baseModelProgramIdx;
-    u32 waterProgramIdx;
-
     // texture indices
     u32 diceTexIdx;
     u32 whiteTexIdx;
@@ -291,9 +287,6 @@ struct App
 
     GLuint BaseModelProgramIdx_uViewProjection;
 
-    GLuint WaterProgramIdx_uViewProjection;
-    GLuint WaterProgramIdx_uModelMatrix;
-
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
 
@@ -305,9 +298,6 @@ struct App
 
     std::vector<Entity> entities;
 
-    u32 island = 0U;
-    WaterTile water;
-
     Camera camera;
     std::vector<Light> lights;
 
@@ -317,11 +307,31 @@ struct App
     GLuint globlaParamsOffset;
     GLuint globalParamsSize;
     int uniformBlockAligment;
+
+    //WATER =======================
+    u32 baseModelProgramIdx;
+    u32 waterProgramIdx;
+
+    GLuint WaterProgramIdx_uViewProjection;
+    GLuint WaterProgramIdx_uModelMatrix;
+
+    GLuint wTexReflection = 0U;
+    GLuint wTexRefraction = 0U;
+    GLuint wDepthReflection = 0U;
+    GLuint wDepthRefraction = 0U;
+
+    GLuint wFboReflect = 0U;
+    GLuint wFboRefract = 0U;
+
+    u32 island = 0U;
+    WaterTile water;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath);
 
 void Init(App* app);
+
+void CheckFramebufferStatus();
 
 void Gui(App* app);
 
