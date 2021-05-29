@@ -263,6 +263,7 @@ struct App
     GLuint texturedMeshProgramIdx_uWorldMatrix;
 
     GLuint texturedMeshProgramIdx_uTexture2;
+    GLuint texturedMeshProgramIdx_uTexture3;
 
     GLuint texturedMeshProgramIdx_uAlbedo;
     GLuint texturedMeshProgramIdx_uPosition;

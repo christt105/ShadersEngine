@@ -231,10 +231,11 @@ void main() {
 	gl_Position = uWorldViewProjectionMatrix * uWorldMatrix * vec4(aPos, 1.0);
 
 	vPos = vec3(uWorldMatrix * vec4(aPos,1.0));
-	vNormals = mat3(transpose(inverse(uWorldMatrix))) * aNormals;
 	vTexCoord = aTexCoord;
 
 	vViewDir = uCameraPos - aPos;
+	
+	vNormals = mat3(transpose(inverse(uWorldMatrix))) * aNormals;
 
 	vec3 T = normalize(vec3(uWorldMatrix * vec4(aTangents,   0.0)));
     vec3 B = normalize(vec3(uWorldMatrix * vec4(aBiTangents, 0.0)));
@@ -266,6 +267,7 @@ in vec3 vViewDir;
 in mat3 TBN;
 
 uniform sampler2D uAlbedoTexture;
+uniform sampler2D uNormalTexture;
 
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oNormals;
@@ -275,8 +277,11 @@ layout(location = 4) out vec4 oPosition;
 
 void main() {
 	vec3 normals = normalize(vNormals);
+
 	if(hasNormalMap == 1){
-		normals = normalize(TBN * vNormals);
+		normals = texture(uNormalTexture, vTexCoord).rgb;
+        normals = normals * 2.0 - 1.0;
+		normals = normalize(TBN * normals);
 	}
 
 
