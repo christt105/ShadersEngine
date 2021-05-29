@@ -65,6 +65,7 @@ layout(binding = 1, std140) uniform LocalParms
 {
 	mat4 uWorldMatrix;
 	mat4 uWorldViewProjectionMatrix;
+
 };
 
 out vec2 vTexCoord;
@@ -124,6 +125,7 @@ in vec3 vViewDir;
 in mat3 TBN;
 
 uniform sampler2D uAlbedoTexture;
+uniform sampler2D normalMap;
 
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oNormals;
@@ -215,6 +217,7 @@ layout(binding = 1, std140) uniform LocalParms
 {
 	mat4 uWorldMatrix;
 	mat4 uWorldViewProjectionMatrix;
+	unsigned int hasNormalMap;
 };
 
 out vec2 vTexCoord;
@@ -249,6 +252,13 @@ layout(binding = 0, std140) uniform GlobalParms
 	int 			uLightCount;
 };
 
+layout(binding = 1, std140) uniform LocalParms
+{
+	mat4 uWorldMatrix;
+	mat4 uWorldViewProjectionMatrix;
+	unsigned int hasNormalMap;
+};
+
 in vec2 vTexCoord;
 in vec3 vPos;
 in vec3 vNormals;
@@ -264,11 +274,14 @@ layout(location = 3) out vec4 oLight;
 layout(location = 4) out vec4 oPosition;
 
 void main() {
+	vec3 normals = normalize(vNormals);
+	if(hasNormalMap == 1){
+		normals = normalize(TBN * vNormals);
+	}
 
-	vec3 normals = normalize(TBN * vNormals);
 
 	oColor 		= texture(uAlbedoTexture, vTexCoord); //same as albedo
-	oNormals 	= vec4(normalize(vNormals), 1.0);
+	oNormals 	= vec4(normals, 1.0);
 	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
 	oLight		= vec4(1.0);
 	oPosition   = vec4(vPos, 1.0);

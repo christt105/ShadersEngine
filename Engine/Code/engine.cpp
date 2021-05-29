@@ -277,17 +277,17 @@ void Init(App* app)
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-    u32 pat = LoadModel(app, "Patrick/Patrick.obj");
+    u32 cliff = LoadModel(app, "Cliff/source/cliff.fbx");
 
-    app->entities.push_back(Entity(glm::mat4(1.f), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 5.f)), pat));
+    app->entities.push_back(Entity(glm::mat4(1.f), cliff));
+    /*app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 5.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 10.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 1.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 1.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 5.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 5.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 10.f)), pat));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 10.f)), pat));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 10.f)), pat));*/
 
     app->lights.push_back(Light(LightType::LightType_Directional, vec3(0.f, 1.f, 0.f), vec3(0.0, -1.0, 1.0), vec3(0.f, 10.f,11.5f), 0.2f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 1.0), vec3(0.f, 2.1f, 1.9f), 2.f));
@@ -685,6 +685,7 @@ void Render(App* app)
             e.localParamsOffset = app->cBuffer.head;
             PushMat4(app->cBuffer, e.mat);
             PushMat4(app->cBuffer, viewMat);
+            PushUInt(app->cBuffer, 0);
             e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
 
             glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);
