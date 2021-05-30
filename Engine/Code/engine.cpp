@@ -278,7 +278,8 @@ void Init(App* app)
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-    u32 cliff = LoadModel(app, "Cliff2/rocks.obj");
+    //u32 cliff = LoadModel(app, "Cliff2/rocks.obj");
+    u32 cliff = LoadModel(app, "e/final/rock.obj");
     //u32 cliff = LoadModel(app, "Cliff/eyeyey/a.obj");
 
 
