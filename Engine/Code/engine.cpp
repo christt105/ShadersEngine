@@ -278,8 +278,8 @@ void Init(App* app)
     app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
     app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
 
-    //u32 cliff = LoadModel(app, "Cliff2/rocks.obj");
-    u32 cliff = LoadModel(app, "e/final/rock.obj");
+    u32 cliff = LoadModel(app, "Cliff2/rocks.obj");
+    //u32 cliff = LoadModel(app, "weapon/source/bandygun3_notUDIm.fbx");
     //u32 cliff = LoadModel(app, "Cliff/eyeyey/a.obj");
 
 
@@ -689,12 +689,11 @@ void Render(App* app)
             e.localParamsOffset = app->cBuffer.head;
             PushMat4(app->cBuffer, e.mat);
             PushMat4(app->cBuffer, viewMat);
-            PushUInt(app->cBuffer, 1);
             e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
 
             glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);
             glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(1), app->cBuffer.handle, e.localParamsOffset, e.localParamsSize);
-
+           
             for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
                 GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
                 glBindVertexArray(vao);
@@ -706,13 +705,23 @@ void Render(App* app)
                 glUniform1i(app->texturedMeshProgramIdx_uTexture2, 0);
 
                 glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.bumpTextureIdx].handle);
-                glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
+                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), submeshmaterial.hasNormalText);
+                if(submeshmaterial.hasNormalText){
+                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.normalsTextureIdx].handle);
+                    glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
+                }
 
+                glActiveTexture(GL_TEXTURE2);
+                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), submeshmaterial.hasBumpText);
+                if (submeshmaterial.hasBumpText) {
+                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.bumpTextureIdx].handle);
+                    glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
+                }
                 Submesh& submesh = mesh.submeshes[i];
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
             }
         }
+       
 
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

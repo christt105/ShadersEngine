@@ -133,10 +133,11 @@ void ProcessAssimpMaterial(App* app, aiMaterial *material, Material& myMaterial,
         myMaterial.specularTextureIdx = LoadTexture2D(app, filepath.str);
     }
     if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
-    {
+    {   
         material->GetTexture(aiTextureType_NORMALS, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
+        myMaterial.hasNormalText = true;
         myMaterial.normalsTextureIdx = LoadTexture2D(app, filepath.str);
     }
     if (material->GetTextureCount(aiTextureType_HEIGHT) > 0)
@@ -144,6 +145,7 @@ void ProcessAssimpMaterial(App* app, aiMaterial *material, Material& myMaterial,
         material->GetTexture(aiTextureType_HEIGHT, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
+        myMaterial.hasBumpText = true;
         myMaterial.bumpTextureIdx = LoadTexture2D(app, filepath.str);
     }
 

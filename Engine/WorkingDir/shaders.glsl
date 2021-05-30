@@ -217,7 +217,6 @@ layout(binding = 1, std140) uniform LocalParms
 {
 	mat4 uWorldMatrix;
 	mat4 uWorldViewProjectionMatrix;
-	unsigned int hasNormalMap;
 };
 
 out vec2 vTexCoord;
@@ -264,7 +263,6 @@ layout(binding = 1, std140) uniform LocalParms
 {
 	mat4 uWorldMatrix;
 	mat4 uWorldViewProjectionMatrix;
-	unsigned int hasNormalMap;
 };
 
 in vec2 vTexCoord;
@@ -274,8 +272,14 @@ in vec3 vViewDir;
 in mat3 TBN;
 in mat3 worldViewMatrix;
 
+
 uniform sampler2D uAlbedoTexture;
+
+uniform unsigned int uhasNormalMap;
 uniform sampler2D uNormalTexture;
+
+uniform unsigned int uhasBumpMap;
+uniform sampler2D uBumpTexture;
 
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oNormals;
@@ -287,11 +291,12 @@ void main() {
 	vec3 normals = vec3(0.0);
 
 	vec2 tCoords = vTexCoord;
-	if(hasNormalMap == 1){
-		
+
+	if(uhasBumpMap == 1){
 		tCoords = reliefMapping(tCoords, vViewDir);
-//		if(tCoords.x >= 1.0 || tCoords.y >= 1.0 || tCoords.x <= 0.0 || tCoords.y <= 0.0)
-//			tCoords = vTexCoord;
+	}
+
+	if(uhasNormalMap == 1){
 
 		normals = texture(uNormalTexture, tCoords).rgb;
         normals = normals * 2.0 - 1.0;
@@ -302,7 +307,7 @@ void main() {
 	}
 
 
-	oColor 		= texture(uAlbedoTexture, vTexCoord); //same as albedo
+	oColor 		= texture(uAlbedoTexture, tCoords); //same as albedo
 	oNormals 	= vec4(normals, 1.0);
 	oAlbedo		= texture(uAlbedoTexture, tCoords);
 	oLight		= vec4(1.0);
@@ -315,25 +320,25 @@ vec2 reliefMapping(vec2 texCoords, vec3 viewDir)
 {
 	int numSteps = 32;
 
-	float bumpiness = 0.3;
+	float bumpiness = 0.5;
 	// Compute the view ray in texture space
-	vec3 rayTexspace = inverse(TBN) * inverse(worldViewMatrix) * viewDir;
+	vec3 rayTexspace = inverse(transpose(TBN)) * inverse(worldViewMatrix) * viewDir;
 	// Increment
 	vec3 rayIncrementTexspace;
 	rayIncrementTexspace.xy = bumpiness * rayTexspace.xy / abs(rayTexspace.z * textureSize(uNormalTexture,0).x);
 	rayIncrementTexspace.z = 1.0/numSteps;
 	// Sampling state
 	vec3 samplePositionTexspace = vec3(texCoords, 0.0);
-	float sampledDepth = 1.0 - texture(uNormalTexture, samplePositionTexspace.xy).r;
+	float sampledDepth = 1.0 - texture(uBumpTexture, samplePositionTexspace.xy).r;
 	// Linear search
 	for (int i = 0; i < numSteps && samplePositionTexspace.z < sampledDepth; ++i)
 	{
 		samplePositionTexspace += rayIncrementTexspace;
-		sampledDepth = 1.0 - texture(uNormalTexture, samplePositionTexspace.xy).r;
+		sampledDepth = 1.0 - texture(uBumpTexture, samplePositionTexspace.xy).r;
 	}
     // get depth after and before collision for linear interpolation
     float afterDepth  = samplePositionTexspace.z - sampledDepth;
-    float beforeDepth = texture(uNormalTexture, samplePositionTexspace.xy).r - samplePositionTexspace.z + sampledDepth;
+    float beforeDepth = texture(uBumpTexture, samplePositionTexspace.xy).r - samplePositionTexspace.z + sampledDepth;
  
     // interpolation of texture coordinates
     float weight = afterDepth / (afterDepth - beforeDepth);

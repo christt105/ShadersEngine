@@ -81,6 +81,8 @@ struct Material {
     u32 specularTextureIdx;
     u32 normalsTextureIdx;
     u32 bumpTextureIdx;
+    u32 hasBumpText;
+    u32 hasNormalText;
 };
 
 struct Image
