@@ -299,6 +299,9 @@ void Init(App* app)
     app->WaterProgramIdx_uMoveFactor = glGetUniformLocation(texturedWaterProgram.handle, "move");
     app->WaterProgramIdx_uCameraPos = glGetUniformLocation(texturedWaterProgram.handle, "cameraPos");
     app->WaterProgramIdx_uNormalMapTex = glGetUniformLocation(texturedWaterProgram.handle, "normalMap");
+    app->WaterProgramIdx_uLightPos = glGetUniformLocation(texturedWaterProgram.handle, "lightPos");
+    app->WaterProgramIdx_uLightColor = glGetUniformLocation(texturedWaterProgram.handle, "lightColor");
+    app->WaterProgramIdx_uDepthMap = glGetUniformLocation(texturedWaterProgram.handle, "depthMap");
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     
@@ -1065,6 +1068,8 @@ void Render(App* app)
             app->wMove += app->wMoveSpeed * app->deltaTime;
             glUniform1f(app->WaterProgramIdx_uMoveFactor, app->wMove);
             glUniform3fv(app->WaterProgramIdx_uCameraPos, 1, glm::value_ptr(app->camera.pos));
+            //glUniform3fv(app->WaterProgramIdx_uCameraPos, 1, glm::value_ptr(app.light));
+            //glUniform3fv(app->WaterProgramIdx_uCameraPos, 1, glm::value_ptr(app->camera.pos));
 
             glUniform1i(app->WaterProgramIdx_uReflectionTex, 0);
             glActiveTexture(GL_TEXTURE0);
@@ -1078,6 +1083,9 @@ void Render(App* app)
             glUniform1i(app->WaterProgramIdx_uNormalMapTex, 3);
             glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, app->textures[app->wTexNormalMap].handle);
+            glUniform1i(app->WaterProgramIdx_uDepthMap, 4);
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_2D, app->wDepthRefraction);
 
             app->water.Render();
         }

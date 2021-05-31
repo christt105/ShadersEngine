@@ -327,6 +327,9 @@ struct App
     GLuint WaterProgramIdx_uNormalMapTex;
     GLuint WaterProgramIdx_uMoveFactor;
     GLuint WaterProgramIdx_uCameraPos;
+    GLuint WaterProgramIdx_uLightPos;
+    GLuint WaterProgramIdx_uLightColor;
+    GLuint WaterProgramIdx_uDepthMap;
     GLuint BaseModelProgramIdx_uPlane;
     GLuint BaseModelProgramIdx_uFaceColor;
 

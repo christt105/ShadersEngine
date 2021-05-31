@@ -514,6 +514,7 @@ layout(location=1) in vec2 aTexCoord;
 uniform mat4 uWorldViewProjectionMatrix;
 uniform mat4 uWorldMatrix;
 
+uniform vec3 lightPos = vec3(5.0, 15.0, 5.0);;
 uniform vec3 cameraPos;
 
 const float tiling = 15.0;
@@ -521,6 +522,7 @@ const float tiling = 15.0;
 out vec4 clipSpace;
 out vec2 vTexCoord;
 out vec3 cameraVector;
+out vec3 lightVector;
 
 void main() {
 	vec4 worldPosition = uWorldMatrix * vec4(aPos, 1.0);
@@ -528,6 +530,7 @@ void main() {
 	gl_Position = clipSpace;
 	vTexCoord = (aTexCoord / 2.0 + 0.5) * tiling;
 	cameraVector = cameraPos - worldPosition.xyz;
+	lightVector = worldPosition.xyz - lightPos;
 }
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
@@ -537,14 +540,21 @@ layout(location = 0) out vec4 oColor;
 in vec4 clipSpace;
 in vec2 vTexCoord;
 in vec3 cameraVector;
+in vec3 lightVector;
 
 uniform sampler2D reflectionTex;
 uniform sampler2D refractionTex;
 uniform sampler2D dudvMap;
 uniform sampler2D normalMap;
+uniform sampler2D depthMap;
+
+uniform vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
 uniform float move = 0.0;
 const float waveStrength = 0.01;
+
+const float shineDamper = 20.0;
+const float reflectivity = 0.6;
 
 void main() {
 
@@ -552,9 +562,18 @@ void main() {
 	vec2 reflectTexCoords = vec2(ndc.x, -ndc.y);
 	vec2 refractTexCoords = vec2(ndc.x,  ndc.y);
 
+	float near = 0.1;
+	float far = 1000.0;
+	float depth = texture(depthMap, refractTexCoords).r;
+	float floorDistance = 2.0 * near * far / (far + near - (2.0 * depth - 1.0) * (far - near));
+
+	depth = gl_FragCoord.z;
+	float waterDistance = 2.0 * near * far / (far + near - (2.0 * depth - 1.0) * (far - near));
+	float waterDepth = floorDistance - waterDistance;
+
 	vec2 distortedTexCoords = texture(dudvMap, vec2(vTexCoord.x + move, vTexCoord.y)).rg * 0.1;
 	distortedTexCoords = vTexCoord + vec2(distortedTexCoords.x, distortedTexCoords.y + move);
-	vec2 distortion = (texture(dudvMap, distortedTexCoords).rg * 2.0 - 1.0) * waveStrength;
+	vec2 distortion = (texture(dudvMap, distortedTexCoords).rg * 2.0 - 1.0) * waveStrength * clamp(waterDepth / 20.0, 0.0, 1.0);
 
 	reflectTexCoords += distortion;
 	reflectTexCoords.x = clamp(reflectTexCoords.x, 0.001, 0.999);
@@ -566,14 +585,21 @@ void main() {
 	vec4 reflectCol = texture(reflectionTex, reflectTexCoords);
 	vec4 refractCol = texture(refractionTex, refractTexCoords);
 
+	vec4 normalMapColor = texture(normalMap, distortedTexCoords);
+	vec3 normal = normalize(vec3(normalMapColor.r * 2.0 - 1.0, normalMapColor.b, normalMapColor.g * 2.0 - 1.0));
+
 	vec3 viewVector = normalize(cameraVector);
 	float refractiveFactor = dot(viewVector, vec3(0.0, 1.0, 0.0));
 	refractiveFactor = pow(refractiveFactor, 10.0);
 
-	vec4 normalMapColor = texture(normalMap, distortedTexCoords);
-	vec3 normal = normalize(vec3(normalMapColor.r * 2.0 - 1.0, normalMapColor.b, normalMapColor.g * 2.0 - 1.0));
+	vec3 reflectedLight = reflect(normalize(lightVector), normal);
+	float specular = max(dot(reflectedLight, viewVector), 0.0);
+	specular = pow(specular, shineDamper);
+	vec3 specularHighlights = lightColor * specular * reflectivity * clamp(waterDepth / 5.0, 0.0, 1.0);
 
-	oColor = mix(mix(reflectCol, refractCol, refractiveFactor), vec4(0.0, 1.0, 1.0, 1.0), 0.2);
+	oColor = mix(reflectCol, refractCol, refractiveFactor);
+	oColor = mix(oColor, vec4(0.0, 1.0, 1.0, 1.0), 0.2) + vec4(specularHighlights, 0.0);
+	oColor.a = clamp(waterDepth / 0.2, 0.0, 1.0);
 }
 
 #endif
