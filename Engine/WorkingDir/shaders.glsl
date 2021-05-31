@@ -514,13 +514,20 @@ layout(location=1) in vec2 aTexCoord;
 uniform mat4 uWorldViewProjectionMatrix;
 uniform mat4 uWorldMatrix;
 
+uniform vec3 cameraPos;
+
+const float tiling = 15.0;
+
 out vec4 clipSpace;
 out vec2 vTexCoord;
+out vec3 cameraVector;
 
 void main() {
-	clipSpace = uWorldViewProjectionMatrix * uWorldMatrix * vec4(aPos, 1.0);
+	vec4 worldPosition = uWorldMatrix * vec4(aPos, 1.0);
+	clipSpace = uWorldViewProjectionMatrix * worldPosition;
 	gl_Position = clipSpace;
-	vTexCoord = aTexCoord;
+	vTexCoord = (aTexCoord / 2.0 + 0.5) * tiling;
+	cameraVector = cameraPos - worldPosition.xyz;
 }
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
@@ -529,10 +536,15 @@ layout(location = 0) out vec4 oColor;
 
 in vec4 clipSpace;
 in vec2 vTexCoord;
+in vec3 cameraVector;
 
 uniform sampler2D reflectionTex;
 uniform sampler2D refractionTex;
 uniform sampler2D dudvMap;
+uniform sampler2D normalMap;
+
+uniform float move = 0.0;
+const float waveStrength = 0.01;
 
 void main() {
 
@@ -540,12 +552,28 @@ void main() {
 	vec2 reflectTexCoords = vec2(ndc.x, -ndc.y);
 	vec2 refractTexCoords = vec2(ndc.x,  ndc.y);
 
+	vec2 distortedTexCoords = texture(dudvMap, vec2(vTexCoord.x + move, vTexCoord.y)).rg * 0.1;
+	distortedTexCoords = vTexCoord + vec2(distortedTexCoords.x, distortedTexCoords.y + move);
+	vec2 distortion = (texture(dudvMap, distortedTexCoords).rg * 2.0 - 1.0) * waveStrength;
+
+	reflectTexCoords += distortion;
+	reflectTexCoords.x = clamp(reflectTexCoords.x, 0.001, 0.999);
+	reflectTexCoords.y = clamp(reflectTexCoords.y, -0.999, -0.001);
+
+	refractTexCoords += distortion;
+	refractTexCoords = clamp(refractTexCoords, 0.001, 0.999);
+
 	vec4 reflectCol = texture(reflectionTex, reflectTexCoords);
 	vec4 refractCol = texture(refractionTex, refractTexCoords);
 
-	//oColor = vec4(0.0, 1.0, 1.0, 1.0);
-	oColor = mix(mix(reflectCol, refractCol, 0.5), vec4(0.0, 1.0, 1.0, 1.0), 0.5);
-	oColor = texture(dudvMap, vTexCoord);
+	vec3 viewVector = normalize(cameraVector);
+	float refractiveFactor = dot(viewVector, vec3(0.0, 1.0, 0.0));
+	refractiveFactor = pow(refractiveFactor, 10.0);
+
+	vec4 normalMapColor = texture(normalMap, distortedTexCoords);
+	vec3 normal = normalize(vec3(normalMapColor.r * 2.0 - 1.0, normalMapColor.b, normalMapColor.g * 2.0 - 1.0));
+
+	oColor = mix(mix(reflectCol, refractCol, refractiveFactor), vec4(0.0, 1.0, 1.0, 1.0), 0.2);
 }
 
 #endif

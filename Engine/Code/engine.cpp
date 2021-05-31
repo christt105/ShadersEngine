@@ -131,7 +131,7 @@ void FreeImage(Image image)
     stbi_image_free(image.pixels);
 }
 
-GLuint CreateTexture2DFromImage(Image image)
+GLuint CreateTexture2DFromImage(Image image, GLenum wrapTex)
 {
     GLenum internalFormat = GL_RGB8;
     GLenum dataFormat     = GL_RGB;
@@ -150,16 +150,16 @@ GLuint CreateTexture2DFromImage(Image image)
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, image.size.x, image.size.y, 0, dataFormat, dataType, image.pixels);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, wrapTex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapTex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapTex);
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
 
     return texHandle;
 }
 
-u32 LoadTexture2D(App* app, const char* filepath)
+u32 LoadTexture2D(App* app, const char* filepath, GLenum wrapTex)
 {
     for (u32 texIdx = 0; texIdx < app->textures.size(); ++texIdx)
         if (app->textures[texIdx].filepath == filepath)
@@ -170,7 +170,7 @@ u32 LoadTexture2D(App* app, const char* filepath)
     if (image.pixels)
     {
         Texture tex = {};
-        tex.handle = CreateTexture2DFromImage(image);
+        tex.handle = CreateTexture2DFromImage(image, wrapTex);
         tex.filepath = filepath;
 
         u32 texIdx = app->textures.size();
@@ -201,7 +201,14 @@ void Init(App* app)
         0, 2, 3
     };
 
+    app->mode = Mode::Mode_Water;
+
     Camera::moveSpeed = 10.f;
+    if (app->mode == Mode::Mode_Water) {
+        app->camera.pos = vec3(10.f, 8.f, 12.f);
+        app->camera.theta = -130.f;
+        app->camera.phi = -15.f;
+    }
 
     glGenBuffers(1, &app->embeddedVertices);
     glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
@@ -289,15 +296,18 @@ void Init(App* app)
     app->WaterProgramIdx_uReflectionTex = glGetUniformLocation(texturedWaterProgram.handle, "reflectionTex");
     app->WaterProgramIdx_uRefractionTex = glGetUniformLocation(texturedWaterProgram.handle, "refractionTex");
     app->WaterProgramIdx_uDudvTex = glGetUniformLocation(texturedWaterProgram.handle, "dudvMap");
+    app->WaterProgramIdx_uMoveFactor = glGetUniformLocation(texturedWaterProgram.handle, "move");
+    app->WaterProgramIdx_uCameraPos = glGetUniformLocation(texturedWaterProgram.handle, "cameraPos");
+    app->WaterProgramIdx_uNormalMapTex = glGetUniformLocation(texturedWaterProgram.handle, "normalMap");
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     
     // - textures
-    app->diceTexIdx = LoadTexture2D(app, "dice.png");
-    app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
-    app->blackTexIdx = LoadTexture2D(app, "color_black.png");
-    app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
-    app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
+    app->diceTexIdx     = LoadTexture2D(app, "dice.png");
+    app->whiteTexIdx    = LoadTexture2D(app, "color_white.png");
+    app->blackTexIdx    = LoadTexture2D(app, "color_black.png");
+    app->normalTexIdx   = LoadTexture2D(app, "color_normal.png");
+    app->magentaTexIdx  = LoadTexture2D(app, "color_magenta.png");
 
     /*u32 pat = LoadModel(app, "Patrick/Patrick.obj");
 
@@ -322,14 +332,9 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));*/
 
     app->island = LoadModel(app, "WaterScene/low_poly_nature/2/volcano.obj");
-    app->wTexDudv = LoadTexture2D(app, "WaterScene/waterDUDV.png");
-    glBindTexture(GL_TEXTURE_2D, app->wTexDudv);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glBindTexture(GL_TEXTURE_2D, NULL);
+    app->wTexDudv = LoadTexture2D(app, "WaterScene/waterDUDV.png", GL_REPEAT);
+    app->wTexNormalMap = LoadTexture2D(app, "WaterScene/normalMap.png", GL_REPEAT);
     app->water = WaterTile(vec3(4.7f, 2.534f, 2.5f), vec2(4.f, 6.f));
-
-    app->mode = Mode::Mode_Water;
 
     //Framebuffer
     for (int i = 0; i < (int)FrameBuffer::MAX; ++i) {
@@ -519,6 +524,13 @@ void Gui(App* app)
     else {
         ImGui::DragFloat3("Position", &app->camera.pos.x);
         ImGui::DragFloat("MoveSpeed", &Camera::moveSpeed, 0.05f);
+    }
+
+    if (app->mode == Mode::Mode_Water) {
+        ImGui::Separator();
+
+        ImGui::Text("Water");
+        ImGui::DragFloat("Speed", &app->wMoveSpeed, 0.001f);
     }
 
     ImGui::Separator();
@@ -1050,15 +1062,22 @@ void Render(App* app)
             glUniformMatrix4fv(app->WaterProgramIdx_uViewProjection, 1, GL_FALSE, glm::value_ptr(viewMat));
             glUniformMatrix4fv(app->WaterProgramIdx_uModelMatrix, 1, GL_FALSE, glm::value_ptr(app->water.mat));
 
+            app->wMove += app->wMoveSpeed * app->deltaTime;
+            glUniform1f(app->WaterProgramIdx_uMoveFactor, app->wMove);
+            glUniform3fv(app->WaterProgramIdx_uCameraPos, 1, glm::value_ptr(app->camera.pos));
+
             glUniform1i(app->WaterProgramIdx_uReflectionTex, 0);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, app->wTexReflection);
             glUniform1i(app->WaterProgramIdx_uRefractionTex, 1);
             glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, app->wTexDudv);
+            glBindTexture(GL_TEXTURE_2D, app->wTexRefraction);
             glUniform1i(app->WaterProgramIdx_uDudvTex, 2);
             glActiveTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, app->textures[app->wTexDudv].handle);
+            glUniform1i(app->WaterProgramIdx_uNormalMapTex, 3);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, app->textures[app->wTexNormalMap].handle);
 
             app->water.Render();
         }

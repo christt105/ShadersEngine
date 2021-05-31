@@ -324,6 +324,9 @@ struct App
     GLuint WaterProgramIdx_uReflectionTex;
     GLuint WaterProgramIdx_uRefractionTex;
     GLuint WaterProgramIdx_uDudvTex;
+    GLuint WaterProgramIdx_uNormalMapTex;
+    GLuint WaterProgramIdx_uMoveFactor;
+    GLuint WaterProgramIdx_uCameraPos;
     GLuint BaseModelProgramIdx_uPlane;
     GLuint BaseModelProgramIdx_uFaceColor;
 
@@ -335,16 +338,19 @@ struct App
     GLuint wDepthRefraction = 0U;
 
     GLuint wTexDudv = 0U;
+    GLuint wTexNormalMap = 0U;
 
     GLuint wFboBase = 0U;
     GLuint wFboReflect = 0U;
     GLuint wFboRefract = 0U;
 
     u32 island = 0U;
+    float wMove = 0.f;
+    float wMoveSpeed = 0.1f;
     WaterTile water;
 };
 
-u32 LoadTexture2D(App* app, const char* filepath);
+u32 LoadTexture2D(App* app, const char* filepath, GLenum wrapTex = GL_CLAMP_TO_EDGE);
 
 void Init(App* app);
 
