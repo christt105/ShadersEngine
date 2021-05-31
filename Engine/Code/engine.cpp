@@ -302,6 +302,10 @@ void Init(App* app)
     app->WaterProgramIdx_uLightPos = glGetUniformLocation(texturedWaterProgram.handle, "lightPos");
     app->WaterProgramIdx_uLightColor = glGetUniformLocation(texturedWaterProgram.handle, "lightColor");
     app->WaterProgramIdx_uDepthMap = glGetUniformLocation(texturedWaterProgram.handle, "depthMap");
+    app->WaterProgramIdx_uWaveStrength = glGetUniformLocation(texturedWaterProgram.handle, "waveStrength");
+    app->WaterProgramIdx_uShineDamper = glGetUniformLocation(texturedWaterProgram.handle, "shineDamper");
+    app->WaterProgramIdx_uReflectivity = glGetUniformLocation(texturedWaterProgram.handle, "reflectivity");
+    app->WaterProgramIdx_uTiling = glGetUniformLocation(texturedWaterProgram.handle, "tiling");
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedWaterProgram.vertexInputLayout.attributes.push_back({ 1, 2 });
     
@@ -335,7 +339,8 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));*/
 
     app->island = LoadModel(app, "WaterScene/low_poly_nature/2/volcano.obj");
-    app->wTexDudv = LoadTexture2D(app, "WaterScene/waterDUDV.png", GL_REPEAT);
+    //app->wTexDudv = LoadTexture2D(app, "WaterScene/waterDUDV.png", GL_REPEAT);
+    app->wTexDudv = LoadTexture2D(app, "WaterScene/dudvMap4.jpg", GL_REPEAT);
     app->wTexNormalMap = LoadTexture2D(app, "WaterScene/normalMap.png", GL_REPEAT);
     app->water = WaterTile(vec3(4.7f, 2.534f, 2.5f), vec2(4.f, 6.f));
 
@@ -518,7 +523,6 @@ void Gui(App* app)
         if (ImGui::Selectable("FPS", app->camera.mode == Camera::CameraMode::FPS)) { app->camera.mode = Camera::CameraMode::FPS; app->camera.phi = -10.f; app->camera.theta = -90.f;}
         ImGui::EndCombo();
     }
-    ImGui::PopID();
     if (app->camera.mode == Camera::CameraMode::ORBIT) {
         ImGui::DragFloat("DistanceToOrigin", &app->camera.distanceToOrigin, 0.15f);
         ImGui::SliderFloat("phi", &app->camera.phi, 0.1f, 179.f, "%.1f");
@@ -528,33 +532,49 @@ void Gui(App* app)
         ImGui::DragFloat3("Position", &app->camera.pos.x);
         ImGui::DragFloat("MoveSpeed", &Camera::moveSpeed, 0.05f);
     }
+    ImGui::PopID();
 
     if (app->mode == Mode::Mode_Water) {
         ImGui::Separator();
+        ImGui::PushID("Water");
 
         ImGui::Text("Water");
         ImGui::DragFloat("Speed", &app->wMoveSpeed, 0.001f);
+        ImGui::DragFloat("Wave Strength", &app->wuWaveStrength, 0.01f);
+        ImGui::DragFloat("Shine Damper", &app->wuShineDamper, 0.5f);
+        ImGui::DragFloat("Reflectivity", &app->wuReflectivity, 0.001f);
+        ImGui::DragFloat("Tiling", &app->tiling, 0.5f);
+
+        ImGui::PopID();
     }
 
     ImGui::Separator();
 
     ImGui::Text("Lights");
-    if (ImGui::CollapsingHeader("Edit")) {
-        for (int i = 0; i < app->lights.size(); ++i) {
-            ImGui::PushID(i);
-            if (app->lights[i].type == 0) { //Directional
-                ImGui::DragFloat3("direction", glm::value_ptr(app->lights[i].direction), 0.01f);
-                ImGui::DragFloat("intensity", &app->lights[i].radius, 0.01f);
+    ImGui::PushID("Lights");
+    if (app->mode == Mode::Mode_Water) {
+        ImGui::DragFloat3("Position", glm::value_ptr(app->wLigthPos));
+        ImGui::ColorEdit3("Color", glm::value_ptr(app->wLigthColor));
+    }
+    else {
+        if (ImGui::CollapsingHeader("Edit")) {
+            for (int i = 0; i < app->lights.size(); ++i) {
+                ImGui::PushID(i);
+                if (app->lights[i].type == 0) { //Directional
+                    ImGui::DragFloat3("direction", glm::value_ptr(app->lights[i].direction), 0.01f);
+                    ImGui::DragFloat("intensity", &app->lights[i].radius, 0.01f);
+                }
+                else {
+                    ImGui::DragFloat3("position", glm::value_ptr(app->lights[i].position), 0.01f);
+                    ImGui::DragFloat("radius", &app->lights[i].radius, 0.01f);
+                }
+                ImGui::DragFloat3("color", glm::value_ptr(app->lights[i].color), 0.01f);
+                ImGui::PopID();
+                ImGui::NewLine();
             }
-            else {
-                ImGui::DragFloat3("position", glm::value_ptr(app->lights[i].position), 0.01f);
-                ImGui::DragFloat("radius", &app->lights[i].radius, 0.01f);
-            }
-            ImGui::DragFloat3("color", glm::value_ptr(app->lights[i].color), 0.01f);
-            ImGui::PopID();
-            ImGui::NewLine();
         }
     }
+    ImGui::PopID();
 
     ImGui::Separator();
 
@@ -1068,8 +1088,12 @@ void Render(App* app)
             app->wMove += app->wMoveSpeed * app->deltaTime;
             glUniform1f(app->WaterProgramIdx_uMoveFactor, app->wMove);
             glUniform3fv(app->WaterProgramIdx_uCameraPos, 1, glm::value_ptr(app->camera.pos));
-            //glUniform3fv(app->WaterProgramIdx_uCameraPos, 1, glm::value_ptr(app.light));
-            //glUniform3fv(app->WaterProgramIdx_uCameraPos, 1, glm::value_ptr(app->camera.pos));
+            glUniform3fv(app->WaterProgramIdx_uLightPos, 1, glm::value_ptr(app->wLigthPos));
+            glUniform3fv(app->WaterProgramIdx_uLightColor, 1, glm::value_ptr(app->wLigthColor));
+            glUniform1f(app->WaterProgramIdx_uShineDamper, app->wuShineDamper);
+            glUniform1f(app->WaterProgramIdx_uTiling, app->tiling);
+            glUniform1f(app->WaterProgramIdx_uWaveStrength, app->wuWaveStrength);
+            glUniform1f(app->WaterProgramIdx_uReflectivity, app->wuReflectivity);
 
             glUniform1i(app->WaterProgramIdx_uReflectionTex, 0);
             glActiveTexture(GL_TEXTURE0);

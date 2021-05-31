@@ -514,10 +514,10 @@ layout(location=1) in vec2 aTexCoord;
 uniform mat4 uWorldViewProjectionMatrix;
 uniform mat4 uWorldMatrix;
 
-uniform vec3 lightPos = vec3(5.0, 15.0, 5.0);;
+uniform vec3 lightPos = vec3(5.0, 15.0, 5.0);
 uniform vec3 cameraPos;
 
-const float tiling = 15.0;
+uniform float tiling = 15.0;
 
 out vec4 clipSpace;
 out vec2 vTexCoord;
@@ -551,10 +551,10 @@ uniform sampler2D depthMap;
 uniform vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
 uniform float move = 0.0;
-const float waveStrength = 0.01;
+uniform float waveStrength = 0.01;
 
-const float shineDamper = 20.0;
-const float reflectivity = 0.6;
+uniform float shineDamper = 20.0;
+uniform float reflectivity = 0.6;
 
 void main() {
 

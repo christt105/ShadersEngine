@@ -330,6 +330,10 @@ struct App
     GLuint WaterProgramIdx_uLightPos;
     GLuint WaterProgramIdx_uLightColor;
     GLuint WaterProgramIdx_uDepthMap;
+    GLuint WaterProgramIdx_uWaveStrength;
+    GLuint WaterProgramIdx_uShineDamper;
+    GLuint WaterProgramIdx_uReflectivity;
+    GLuint WaterProgramIdx_uTiling;
     GLuint BaseModelProgramIdx_uPlane;
     GLuint BaseModelProgramIdx_uFaceColor;
 
@@ -349,8 +353,16 @@ struct App
 
     u32 island = 0U;
     float wMove = 0.f;
-    float wMoveSpeed = 0.1f;
+    float wMoveSpeed = 0.05f;
     WaterTile water;
+
+    vec3 wLigthColor = vec3(1.f);
+    vec3 wLigthPos = vec3(5.0, 15.0, 5.0);
+
+    float wuWaveStrength = 0.03f;
+    float wuShineDamper = 6.f;
+    float wuReflectivity = 0.6f;
+    float tiling = 6.f;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath, GLenum wrapTex = GL_CLAMP_TO_EDGE);
