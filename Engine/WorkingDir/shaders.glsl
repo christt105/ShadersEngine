@@ -291,7 +291,7 @@ void main() {
 	vec3 normals = vec3(0.0);
 
 	vec2 tCoords = vTexCoord;
-
+	
 
 		tCoords = reliefMapping(tCoords, vViewDir);
 	

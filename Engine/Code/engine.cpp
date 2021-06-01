@@ -868,7 +868,7 @@ void Render(App* app)
 
             AlignHead(app->cBuffer, app->uniformBlockAligment);
             e.localParamsOffset = app->cBuffer.head;
-            PushMat4(app->cBuffer, e.mat);
+            PushMat4(app->cBuffer, glm::scale(e.mat, glm::vec3(0.01,0.01,0.01)));
             PushMat4(app->cBuffer, viewMat);
             e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
 
