@@ -118,6 +118,8 @@ enum Mode
     Mode_TexturedQuad,
     Mode_Forward,
     Mode_Deferred,
+    Mode_Water,
+
     Mode_Count
 };
 
@@ -130,6 +132,8 @@ static std::string ModeToString(Mode m) {
         return "Forward";
     case Mode_Deferred:
         return "Deferred";
+    case Mode_Water:
+        return "Water";
     }
 
     return "None";
@@ -144,18 +148,31 @@ struct Entity {
     Entity(const glm::mat4& m, u32 mod) : mat(m), model(mod){}
 };
 
+struct WaterTile {
+    glm::vec3 pos;
+    glm::vec2 size;
+
+    glm::mat4 mat = glm::mat4(1.f);
+
+    void Render() const;
+    WaterTile() {}
+    WaterTile(const glm::vec3& pos, const glm::vec2& size) : pos(pos), size(size) {
+        mat = glm::scale(glm::translate(mat, pos), vec3(size.x, 1.f, size.y));
+    }
+};
+
 enum LightType
 {
     LightType_Directional,
     LightType_Point
 };
 
-    enum class FrameBuffer {
-        Framebuffer,
-        FinalRender, Albedo, Normals, Light, Position,
-        Depth,
-        MAX
-    };
+enum class FrameBuffer {
+    Framebuffer,
+    FinalRender, Albedo, Normals, Light, Position,
+    Depth,
+    MAX
+};
 
 /*struct FrameBuffer {
     Attachment ids[(int)Attachment::MAX];
@@ -197,13 +214,15 @@ struct Camera {
     vec3 up = vec3(0.f, 1.f, 0.f);
     vec3 right = vec3(1.f, 0.f, 0.f);
 
+    static float moveSpeed;
+
     glm::mat4 GetViewMatrix(const vec2& size) {
         float Phi = glm::radians(phi);
         float Theta = glm::radians(theta);
         if (mode == CameraMode::ORBIT) {
             pos = { distanceToOrigin * sin(Phi) * cos(Theta), distanceToOrigin * cos(Phi), distanceToOrigin * sin(Phi) * sin(Theta) };
 
-            return glm::perspective(glm::radians(60.f), size.x / size.y, 0.1f, 100.f) * glm::lookAt(pos, vec3(0.f), vec3(0.f, 1.f, 0.f));
+            return glm::perspective(glm::radians(60.f), size.x / size.y, 0.1f, 1000.f) * glm::lookAt(pos, vec3(0.f), vec3(0.f, 1.f, 0.f));
         }
         else {
             front.x = cos(Theta) * cos(Phi);
@@ -214,7 +233,7 @@ struct Camera {
             right = glm::normalize(glm::cross(front, vec3(0.f, 1.f, 0.f)));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
             up = glm::normalize(glm::cross(right, front));
 
-            return glm::perspective(glm::radians(60.f), size.x / size.y, 0.1f, 100.f) * glm::lookAt(pos, pos + front, up);
+            return glm::perspective(glm::radians(60.f), size.x / size.y, 0.1f, 1000.f) * glm::lookAt(pos, pos + front, up);
         }
     }
 };
@@ -280,6 +299,8 @@ struct App
     GLuint texturedLightProgramIdx_uViewProjection;
     GLuint texturedLightProgramIdx_uModel;
 
+    GLuint BaseModelProgramIdx_uViewProjection;
+
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
 
@@ -300,11 +321,62 @@ struct App
     GLuint globlaParamsOffset;
     GLuint globalParamsSize;
     int uniformBlockAligment;
+
+    //WATER =======================
+    u32 baseModelProgramIdx;
+    u32 waterProgramIdx;
+
+    GLuint WaterProgramIdx_uViewProjection;
+    GLuint WaterProgramIdx_uModelMatrix;
+    GLuint WaterProgramIdx_uReflectionTex;
+    GLuint WaterProgramIdx_uRefractionTex;
+    GLuint WaterProgramIdx_uDudvTex;
+    GLuint WaterProgramIdx_uNormalMapTex;
+    GLuint WaterProgramIdx_uMoveFactor;
+    GLuint WaterProgramIdx_uCameraPos;
+    GLuint WaterProgramIdx_uLightPos;
+    GLuint WaterProgramIdx_uLightColor;
+    GLuint WaterProgramIdx_uDepthMap;
+    GLuint WaterProgramIdx_uWaveStrength;
+    GLuint WaterProgramIdx_uShineDamper;
+    GLuint WaterProgramIdx_uReflectivity;
+    GLuint WaterProgramIdx_uTiling;
+    GLuint BaseModelProgramIdx_uPlane;
+    GLuint BaseModelProgramIdx_uFaceColor;
+
+    GLuint wTexBase = 0U;
+    GLuint wDepthBase = 0U;
+    GLuint wTexReflection = 0U;
+    GLuint wTexRefraction = 0U;
+    GLuint wDepthReflection = 0U;
+    GLuint wDepthRefraction = 0U;
+
+    GLuint wTexDudv = 0U;
+    GLuint wTexNormalMap = 0U;
+
+    GLuint wFboBase = 0U;
+    GLuint wFboReflect = 0U;
+    GLuint wFboRefract = 0U;
+
+    u32 island = 0U;
+    float wMove = 0.f;
+    float wMoveSpeed = 0.05f;
+    WaterTile water;
+
+    vec3 wLigthColor = vec3(1.f);
+    vec3 wLigthPos = vec3(5.0, 15.0, 5.0);
+
+    float wuWaveStrength = 0.03f;
+    float wuShineDamper = 6.f;
+    float wuReflectivity = 0.6f;
+    float tiling = 6.f;
 };
 
-u32 LoadTexture2D(App* app, const char* filepath);
+u32 LoadTexture2D(App* app, const char* filepath, GLenum wrapTex = GL_CLAMP_TO_EDGE);
 
 void Init(App* app);
+
+void CheckFramebufferStatus();
 
 void Gui(App* app);
 
