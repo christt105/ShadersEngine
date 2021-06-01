@@ -292,19 +292,14 @@ void main() {
 
 	vec2 tCoords = vTexCoord;
 
-	if(uhasBumpMap == 1){
-		tCoords = reliefMapping(tCoords, vViewDir);
-	}
 
-	if(uhasNormalMap == 1){
+		tCoords = reliefMapping(tCoords, vViewDir);
+	
 
 		normals = texture(uNormalTexture, tCoords).rgb;
         normals = normals * 2.0 - 1.0;
 		normals = normalize(inverse(transpose(TBN)) * normals);
-
-	} else{
-		normals = normalize(vNormals);
-	}
+	
 
 
 	oColor 		= texture(uAlbedoTexture, tCoords); //same as albedo
@@ -318,14 +313,14 @@ void main() {
 // Parallax occlusion mapping aka. relief mapping
 vec2 reliefMapping(vec2 texCoords, vec3 viewDir)
 {
-	int numSteps = 32;
+	int numSteps = 20;
 
-	float bumpiness = 0.5;
+	float bumpiness = 1;
 	// Compute the view ray in texture space
-	vec3 rayTexspace = inverse(transpose(TBN)) * inverse(worldViewMatrix) * viewDir;
+	vec3 rayTexspace = transpose(TBN) * inverse(worldViewMatrix) * viewDir;
 	// Increment
 	vec3 rayIncrementTexspace;
-	rayIncrementTexspace.xy = bumpiness * rayTexspace.xy / abs(rayTexspace.z * textureSize(uNormalTexture,0).x);
+	rayIncrementTexspace.xy = bumpiness * rayTexspace.xy / abs(rayTexspace.z * textureSize(uBumpTexture,0).x);
 	rayIncrementTexspace.z = 1.0/numSteps;
 	// Sampling state
 	vec3 samplePositionTexspace = vec3(texCoords, 0.0);

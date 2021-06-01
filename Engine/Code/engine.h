@@ -248,6 +248,10 @@ struct App
     u32 normalTexIdx;
     u32 magentaTexIdx;
 
+    u32 bumpMapIdx;
+    u32 albedoMapIdx;
+    u32 normalMapIdx;
+
     // Mode
     Mode mode;
 
