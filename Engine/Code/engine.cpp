@@ -328,7 +328,8 @@ void Init(App* app)
     //u32 cliff = LoadModel(app, "Cliff/eyeyey/a.obj");
     //u32 cliff = LoadModel(app, "AK47/AK47.obj");
     //u32 cliff = LoadModel(app, "3/Models_OBJ/Terrain_50000.obj");
-    u32 cliff = LoadModel(app, "Cubo/Cube_obj.obj");
+    //u32 cliff = LoadModel(app, "Cubo/Cube_obj.obj");
+    u32 cliff = LoadModel(app, "Plane/Plane.obj");
 
     app->entities.push_back(Entity(glm::mat4(1.f), cliff));
     /*app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 5.f)), pat));
@@ -351,11 +352,11 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));*/
 
     app->mode = Mode::Mode_Deferred;
-    app->island = LoadModel(app, "WaterScene/low_poly_nature/2/volcano.obj");
-    //app->wTexDudv = LoadTexture2D(app, "WaterScene/waterDUDV.png", GL_REPEAT);
-    app->wTexDudv = LoadTexture2D(app, "WaterScene/dudvMap4.jpg", GL_REPEAT);
-    app->wTexNormalMap = LoadTexture2D(app, "WaterScene/normalMap.png", GL_REPEAT);
-    app->water = WaterTile(vec3(4.7f, 2.534f, 2.5f), vec2(4.f, 6.f));
+    //app->island = LoadModel(app, "WaterScene/low_poly_nature/2/volcano.obj");
+    ////app->wTexDudv = LoadTexture2D(app, "WaterScene/waterDUDV.png", GL_REPEAT);
+    //app->wTexDudv = LoadTexture2D(app, "WaterScene/dudvMap4.jpg", GL_REPEAT);
+    //app->wTexNormalMap = LoadTexture2D(app, "WaterScene/normalMap.png", GL_REPEAT);
+    //app->water = WaterTile(vec3(4.7f, 2.534f, 2.5f), vec2(4.f, 6.f));
 
     //Framebuffer
     for (int i = 0; i < (int)FrameBuffer::MAX; ++i) {
@@ -859,6 +860,21 @@ void Render(App* app)
 
         app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
 
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, app->textures[app->albedoMapIdx].handle);
+        glUniform1i(app->texturedMeshProgramIdx_uTexture2, 0);
+
+        //manual
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), 1);
+        glBindTexture(GL_TEXTURE_2D, app->textures[app->normalMapIdx].handle);
+        glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
+
+        glActiveTexture(GL_TEXTURE2);
+        glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), 1);
+        glBindTexture(GL_TEXTURE_2D, app->textures[app->bumpMapIdx].handle);
+        glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
+
         for (auto& e : app->entities) {
 
             Model& model = app->models[e.model];
@@ -868,7 +884,7 @@ void Render(App* app)
 
             AlignHead(app->cBuffer, app->uniformBlockAligment);
             e.localParamsOffset = app->cBuffer.head;
-            PushMat4(app->cBuffer, glm::scale(e.mat, glm::vec3(0.01,0.01,0.01)));
+            PushMat4(app->cBuffer, e.mat);
             PushMat4(app->cBuffer, viewMat);
             e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
 

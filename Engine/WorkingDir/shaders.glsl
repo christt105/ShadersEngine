@@ -296,7 +296,7 @@ void main() {
 		tCoords = reliefMapping(tCoords, vViewDir);
 	
 
-		normals = texture(uNormalTexture, tCoords).rgb;
+		normals = texture(uNormalTexture, vTexCoord).rgb;
         normals = normals * 2.0 - 1.0;
 		normals = normalize(inverse(transpose(TBN)) * normals);
 	
@@ -313,7 +313,7 @@ void main() {
 // Parallax occlusion mapping aka. relief mapping
 vec2 reliefMapping(vec2 texCoords, vec3 viewDir)
 {
-	int numSteps = 20;
+	int numSteps = 15;
 
 	float bumpiness = 1;
 	// Compute the view ray in texture space
