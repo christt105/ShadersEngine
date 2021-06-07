@@ -168,14 +168,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glfw\include;C:\Users\jdiaz\Projects\AGP\Engine\ThirdParty\glad\include;C:\Users\jdiaz\Projects\AGP\Engine\ThirdParty\glm\include;C:\Users\jdiaz\Projects\AGP\Engine\ThirdParty\imgui-docking;C:\Users\jdiaz\Projects\AGP\Engine\ThirdParty\stb;C:\Users\jdiaz\Projects\AGP\Engine\ThirdParty\Assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\glfw\include;$(ProjectDir)ThirdParty\glad\include;$(ProjectDir)ThirdParty\glm\include;$(ProjectDir)ThirdParty\imgui-docking;$(ProjectDir)ThirdParty\stb;$(ProjectDir)ThirdParty\Assimp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(ProjectDir)ThirdParty\glfw\lib-vc2019;C:\Users\jdiaz\Projects\AGP\Engine\ThirdParty\Assimp\lib\windows;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)ThirdParty\glfw\lib-vc2019;$(ProjectDir)ThirdParty\Assimp\lib\windows;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
