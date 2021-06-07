@@ -343,6 +343,8 @@ struct App
     GLuint WaterProgramIdx_uTiling;
     GLuint BaseModelProgramIdx_uPlane;
     GLuint BaseModelProgramIdx_uFaceColor;
+    GLuint BaseModelProgramIdx_uLightPos;
+    GLuint BaseModelProgramIdx_uLightColor;
 
     GLuint wTexBase = 0U;
     GLuint wDepthBase = 0U;
@@ -369,7 +371,7 @@ struct App
     float wuWaveStrength = 0.03f;
     float wuShineDamper = 6.f;
     float wuReflectivity = 0.6f;
-    float tiling = 6.f;
+    float tiling = 12.f;
 };
 
 u32 LoadTexture2D(App* app, const char* filepath, GLenum wrapTex = GL_CLAMP_TO_EDGE);

@@ -287,6 +287,8 @@ void Init(App* app)
     app->BaseModelProgramIdx_uViewProjection = glGetUniformLocation(texturedBaseProgram.handle, "uWorldViewProjectionMatrix");
     app->BaseModelProgramIdx_uPlane = glGetUniformLocation(texturedBaseProgram.handle, "plane");
     app->BaseModelProgramIdx_uFaceColor = glGetUniformLocation(texturedBaseProgram.handle, "faceColor");
+    app->BaseModelProgramIdx_uLightPos = glGetUniformLocation(texturedBaseProgram.handle, "lightPos");
+    app->BaseModelProgramIdx_uLightColor = glGetUniformLocation(texturedBaseProgram.handle, "lightColor");
     texturedBaseProgram.vertexInputLayout.attributes.push_back({ 0, 3 });
     texturedBaseProgram.vertexInputLayout.attributes.push_back({ 1, 3 });
 
@@ -1035,6 +1037,9 @@ void Render(App* app)
 
             glUniform4f(app->BaseModelProgramIdx_uPlane, 0.f, 1.f, 0.f, -app->water.pos.y);
 
+            glUniform3fv(app->BaseModelProgramIdx_uLightPos, 1, glm::value_ptr(app->wLigthPos));
+            glUniform3fv(app->BaseModelProgramIdx_uLightColor, 1, glm::value_ptr(app->wLigthColor));
+
             for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
                 GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
                 glBindVertexArray(vao);
@@ -1176,16 +1181,6 @@ void Render(App* app)
     default:
         break;
     }
-}
-
-/// <summary>
-/// 
-/// </summary>
-/// <param name="cam"></param>
-/// <param name="colorAttach"></param>
-/// <param name="type">0 reflection, 1 refraction</param>
-void RenderWaterScene(const Camera& cam, GLenum colorAttach, int type) {
-    
 }
 
 void WaterTile::Render() const
