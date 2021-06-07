@@ -903,9 +903,6 @@ void Render(App* app)
                 glUniform1i(app->texturedMeshProgramIdx_uTexture2, 0);
 
                 //automatic
-                
-               
-
                 glActiveTexture(GL_TEXTURE2);
                 glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), submeshmaterial.hasBumpText);
                 if (submeshmaterial.hasBumpText) {
