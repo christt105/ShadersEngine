@@ -275,7 +275,7 @@ in mat3 worldViewMatrix;
 
 uniform sampler2D uAlbedoTexture;
 
-uniform unsigned int uhasNormalMap;
+uniform unsigned int uhasNMap;
 uniform sampler2D uNormalTexture;
 
 uniform unsigned int uhasBumpMap;
@@ -288,18 +288,20 @@ layout(location = 3) out vec4 oLight;
 layout(location = 4) out vec4 oPosition;
 
 void main() {
-	vec3 normals = vec3(0.0);
 
 	vec2 tCoords = vTexCoord;
 	
-
+	if(uhasBumpMap == 1){
 		tCoords = reliefMapping(tCoords, vViewDir);
+	}
 	
+	vec3 normals = vNormals;
 
-		normals = texture(uNormalTexture, vTexCoord).rgb;
+	if(uhasNMap == 0){
+		normals = texture(uNormalTexture, tCoords).rgb;
         normals = normals * 2.0 - 1.0;
 		normals = normalize(inverse(transpose(TBN)) * normals);
-	
+	}
 
 
 	oColor 		= texture(uAlbedoTexture, tCoords); //same as albedo
@@ -313,9 +315,9 @@ void main() {
 // Parallax occlusion mapping aka. relief mapping
 vec2 reliefMapping(vec2 texCoords, vec3 viewDir)
 {
-	int numSteps = 15;
+	int numSteps = 32;
 
-	float bumpiness = 1;
+	float bumpiness = 25;
 	// Compute the view ray in texture space
 	vec3 rayTexspace = transpose(TBN) * inverse(worldViewMatrix) * viewDir;
 	// Increment

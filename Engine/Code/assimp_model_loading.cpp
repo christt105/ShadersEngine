@@ -126,27 +126,37 @@ void ProcessAssimpMaterial(App* app, aiMaterial *material, Material& myMaterial,
         String filepath = MakePath(directory, filename);
         myMaterial.emissiveTextureIdx = LoadTexture2D(app, filepath.str);
     }
-    if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
+     if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
     {
         material->GetTexture(aiTextureType_SPECULAR, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
         myMaterial.specularTextureIdx = LoadTexture2D(app, filepath.str);
     }
-    if (material->GetTextureCount(aiTextureType_NORMALS) > 0 || material->GetTextureCount(aiTextureType_LIGHTMAP))
+    if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
     {   
         material->GetTexture(aiTextureType_NORMALS, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
-        myMaterial.hasNormalText = true;
+        myMaterial.hasNormalText = 1;
         myMaterial.normalsTextureIdx = LoadTexture2D(app, filepath.str);
+    }else{
+        String filename = MakeString("Normal.png");
+        String filepath = MakePath(directory, filename);
+
+        myMaterial.normalsTextureIdx = LoadTexture2D(app, filepath.str);
+        if (myMaterial.normalsTextureIdx != UINT32_MAX) {
+            myMaterial.hasNormalText = 1;
+        }
+
     }
-    if (material->GetTextureCount(aiTextureType_HEIGHT) > 0 )
+   
+    if (material->GetTextureCount(aiTextureType_HEIGHT) > 0)
     {
         material->GetTexture(aiTextureType_HEIGHT, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
-        myMaterial.hasBumpText = true;
+        myMaterial.hasBumpText = 1;
         myMaterial.bumpTextureIdx = LoadTexture2D(app, filepath.str);
     }
 

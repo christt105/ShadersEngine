@@ -341,7 +341,7 @@ void Init(App* app)
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 10.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(12.1f, 0.1f, 10.f)), pat));*/
 
-    app->lights.push_back(Light(LightType::LightType_Directional, vec3(1.f, 1.f, 1.f), vec3(0.89, 1.0, -1.0), vec3(0.f, 10.f,11.5f), 0.9f));
+    app->lights.push_back(Light(LightType::LightType_Directional, vec3(1.f, 1.f, 1.f), vec3(0.89, -1.0, -1.0), vec3(0.f, 10.f,11.5f), 0.9f));
    /* app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, 1.0, 1.0), vec3(0.f, 2.1f, 1.9f), 2.f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(1.0, 0.0, .0), vec3(0.0, 1.0, 1.0), vec3(0.f, 2.1f, 5.9f), 5.f));
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 0.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(0.f, 3.f, 11.f), 15.f));
@@ -864,16 +864,16 @@ void Render(App* app)
         glBindTexture(GL_TEXTURE_2D, app->textures[app->albedoMapIdx].handle);
         glUniform1i(app->texturedMeshProgramIdx_uTexture2, 0);
 
-        //manual
-        glActiveTexture(GL_TEXTURE1);
-        glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), 1);
-        glBindTexture(GL_TEXTURE_2D, app->textures[app->normalMapIdx].handle);
-        glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
+        ////manual
+        //glActiveTexture(GL_TEXTURE1);
+        //glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), 1);
+        //glBindTexture(GL_TEXTURE_2D, app->textures[app->normalMapIdx].handle);
+        //glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
 
-        glActiveTexture(GL_TEXTURE2);
-        glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), 1);
-        glBindTexture(GL_TEXTURE_2D, app->textures[app->bumpMapIdx].handle);
-        glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
+        //glActiveTexture(GL_TEXTURE2);
+        //glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), 1);
+        //glBindTexture(GL_TEXTURE_2D, app->textures[app->bumpMapIdx].handle);
+        //glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
 
         for (auto& e : app->entities) {
 
@@ -895,37 +895,31 @@ void Render(App* app)
                 GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
                 glBindVertexArray(vao);
 
+
                 u32 submeshMaterialIdx = model.materialIdx[i];
                 Material& submeshmaterial = app->materials[submeshMaterialIdx];
                 glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, app->textures[app->albedoMapIdx].handle);
+                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
                 glUniform1i(app->texturedMeshProgramIdx_uTexture2, 0);
 
-                //manual
-                glActiveTexture(GL_TEXTURE1);
-                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), 1);                
-                glBindTexture(GL_TEXTURE_2D, app->textures[app->normalMapIdx].handle);
-                glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
+                //automatic
+                
+               
 
                 glActiveTexture(GL_TEXTURE2);
-                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), 1);
-                glBindTexture(GL_TEXTURE_2D, app->textures[app->bumpMapIdx].handle);
-                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
-                
-                //automatic
-                //glActiveTexture(GL_TEXTURE1);
-                //glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), submeshmaterial.hasNormalText);
-                //if(submeshmaterial.hasNormalText){
-                //    glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.normalsTextureIdx].handle);
-                //    glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
-                //}
-
-                /*glActiveTexture(GL_TEXTURE2);
                 glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), submeshmaterial.hasBumpText);
                 if (submeshmaterial.hasBumpText) {
                     glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.bumpTextureIdx].handle);
                     glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
-                }*/
+                }
+
+                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), submeshmaterial.hasNormalText);
+                glActiveTexture(GL_TEXTURE1);
+                if (submeshmaterial.hasNormalText) {
+                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.normalsTextureIdx].handle);
+                    glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
+                }
+
                 Submesh& submesh = mesh.submeshes[i];
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
             }
