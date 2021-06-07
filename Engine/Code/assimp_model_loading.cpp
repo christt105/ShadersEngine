@@ -50,6 +50,7 @@ void ProcessAssimpMesh(const aiScene* scene, aiMesh *mesh, Mesh *myMesh, u32 bas
             vertices.push_back(-mesh->mBitangents[i].y);
             vertices.push_back(-mesh->mBitangents[i].z);
         }
+
     }
 
     // process indices
@@ -125,7 +126,7 @@ void ProcessAssimpMaterial(App* app, aiMaterial *material, Material& myMaterial,
         String filepath = MakePath(directory, filename);
         myMaterial.emissiveTextureIdx = LoadTexture2D(app, filepath.str);
     }
-    if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
+     if (material->GetTextureCount(aiTextureType_SPECULAR) > 0)
     {
         material->GetTexture(aiTextureType_SPECULAR, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
@@ -133,17 +134,29 @@ void ProcessAssimpMaterial(App* app, aiMaterial *material, Material& myMaterial,
         myMaterial.specularTextureIdx = LoadTexture2D(app, filepath.str);
     }
     if (material->GetTextureCount(aiTextureType_NORMALS) > 0)
-    {
+    {   
         material->GetTexture(aiTextureType_NORMALS, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
+        myMaterial.hasNormalText = 1;
         myMaterial.normalsTextureIdx = LoadTexture2D(app, filepath.str);
+    }else{
+        String filename = MakeString("Normal.png");
+        String filepath = MakePath(directory, filename);
+
+        myMaterial.normalsTextureIdx = LoadTexture2D(app, filepath.str);
+        if (myMaterial.normalsTextureIdx != UINT32_MAX) {
+            myMaterial.hasNormalText = 1;
+        }
+
     }
+   
     if (material->GetTextureCount(aiTextureType_HEIGHT) > 0)
     {
         material->GetTexture(aiTextureType_HEIGHT, 0, &aiFilename);
         String filename = MakeString(aiFilename.C_Str());
         String filepath = MakePath(directory, filename);
+        myMaterial.hasBumpText = 1;
         myMaterial.bumpTextureIdx = LoadTexture2D(app, filepath.str);
     }
 

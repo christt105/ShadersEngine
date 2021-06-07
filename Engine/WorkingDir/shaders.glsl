@@ -65,6 +65,7 @@ layout(binding = 1, std140) uniform LocalParms
 {
 	mat4 uWorldMatrix;
 	mat4 uWorldViewProjectionMatrix;
+
 };
 
 out vec2 vTexCoord;
@@ -124,6 +125,7 @@ in vec3 vViewDir;
 in mat3 TBN;
 
 uniform sampler2D uAlbedoTexture;
+uniform sampler2D normalMap;
 
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oNormals;
@@ -222,26 +224,34 @@ out vec3 vPos;
 out vec3 vNormals;
 out vec3 vViewDir;
 out mat3 TBN;
+out mat3 worldViewMatrix;
 
 void main() {
 
 	gl_Position = uWorldViewProjectionMatrix * uWorldMatrix * vec4(aPos, 1.0);
 
 	vPos = vec3(uWorldMatrix * vec4(aPos,1.0));
-	vNormals = mat3(transpose(inverse(uWorldMatrix))) * aNormals;
-	vTexCoord = aTexCoord;
 
-	vViewDir = uCameraPos - aPos;
+	vTexCoord = aTexCoord;
+	
+	vNormals = mat3(transpose(inverse(uWorldMatrix))) * aNormals;
 
 	vec3 T = normalize(vec3(uWorldMatrix * vec4(aTangents,   0.0)));
     vec3 B = normalize(vec3(uWorldMatrix * vec4(aBiTangents, 0.0)));
     vec3 N = normalize(vec3(uWorldMatrix * vec4(vNormals,    0.0)));
 
+    worldViewMatrix = mat3(uWorldMatrix);
+
+	vViewDir = uCameraPos - vPos;
+
     TBN = mat3(T,B,N);
+	
+
 }
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
 
+vec2 reliefMapping(vec2 texCoords, vec3 viewDir);
 
 layout(binding = 0, std140) uniform GlobalParms
 {
@@ -249,13 +259,27 @@ layout(binding = 0, std140) uniform GlobalParms
 	int 			uLightCount;
 };
 
+layout(binding = 1, std140) uniform LocalParms
+{
+	mat4 uWorldMatrix;
+	mat4 uWorldViewProjectionMatrix;
+};
+
 in vec2 vTexCoord;
 in vec3 vPos;
 in vec3 vNormals;
 in vec3 vViewDir;
 in mat3 TBN;
+in mat3 worldViewMatrix;
+
 
 uniform sampler2D uAlbedoTexture;
+
+uniform unsigned int uhasNMap;
+uniform sampler2D uNormalTexture;
+
+uniform unsigned int uhasBumpMap;
+uniform sampler2D uBumpTexture;
 
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oNormals;
@@ -265,16 +289,60 @@ layout(location = 4) out vec4 oPosition;
 
 void main() {
 
-	vec3 normals = normalize(TBN * vNormals);
+	vec2 tCoords = vTexCoord;
+	
+	if(uhasBumpMap == 1){
+		tCoords = reliefMapping(tCoords, vViewDir);
+	}
+	
+	vec3 normals = vNormals;
 
-	oColor 		= texture(uAlbedoTexture, vTexCoord); //same as albedo
-	oNormals 	= vec4(normalize(vNormals), 1.0);
-	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
+	if(uhasNMap == 0){
+		normals = texture(uNormalTexture, tCoords).rgb;
+        normals = normals * 2.0 - 1.0;
+		normals = normalize(inverse(transpose(TBN)) * normals);
+	}
+
+
+	oColor 		= texture(uAlbedoTexture, tCoords); //same as albedo
+	oNormals 	= vec4(normals, 1.0);
+	oAlbedo		= texture(uAlbedoTexture, tCoords);
 	oLight		= vec4(1.0);
-	oPosition   = vec4(vPos, 1.0);
+	oPosition   = vec4(transpose(TBN) * vPos, 1.0);
 	gl_FragDepth = gl_FragCoord.z - 0.1;
 }
 
+// Parallax occlusion mapping aka. relief mapping
+vec2 reliefMapping(vec2 texCoords, vec3 viewDir)
+{
+	int numSteps = 32;
+
+	float bumpiness = 25;
+	// Compute the view ray in texture space
+	vec3 rayTexspace = transpose(TBN) * inverse(worldViewMatrix) * viewDir;
+	// Increment
+	vec3 rayIncrementTexspace;
+	rayIncrementTexspace.xy = bumpiness * rayTexspace.xy / abs(rayTexspace.z * textureSize(uBumpTexture,0).x);
+	rayIncrementTexspace.z = 1.0/numSteps;
+	// Sampling state
+	vec3 samplePositionTexspace = vec3(texCoords, 0.0);
+	float sampledDepth = 1.0 - texture(uBumpTexture, samplePositionTexspace.xy).r;
+	// Linear search
+	for (int i = 0; i < numSteps && samplePositionTexspace.z < sampledDepth; ++i)
+	{
+		samplePositionTexspace += rayIncrementTexspace;
+		sampledDepth = 1.0 - texture(uBumpTexture, samplePositionTexspace.xy).r;
+	}
+    // get depth after and before collision for linear interpolation
+    float afterDepth  = samplePositionTexspace.z - sampledDepth;
+    float beforeDepth = texture(uBumpTexture, samplePositionTexspace.xy).r - samplePositionTexspace.z + sampledDepth;
+ 
+    // interpolation of texture coordinates
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    vec2 finalTexCoords = samplePositionTexspace.xy * weight + samplePositionTexspace.xy * (1.0 - weight);
+
+    return finalTexCoords;
+}
 
 #endif
 #endif
@@ -355,7 +423,7 @@ void main() {
 	float depth = texture(uDepthTexture, vTexCoord).r;
 
 	vec3 viewDir = normalize(uCameraPos - fragPos);
-	vec3 result = vec3(0.0,0.0,0.0);
+	vec3 result = vec3(0.0,0.0,0.0);    
 	
 	for(int i = 0; i < uLightCount; ++i)
 	{			
@@ -372,7 +440,7 @@ void main() {
 		}
 	}
 
-	oColor = vec4(result + diffuseCol * 0.2, 1.0);
+	oColor = vec4(result, 1.0) * texture(uAlbedoTexture, vTexCoord);
 }
 
 vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords) {
@@ -446,8 +514,160 @@ layout(binding = 0, std140) uniform LocalParms
 
 void main() {
 	oColor = vec4(lightColor, 0.6);
-		gl_FragDepth = gl_FragCoord.z - 0.1;
+	gl_FragDepth = gl_FragCoord.z - 0.1;
+}
 
+#endif
+#endif
+
+#ifdef DRAW_BASE_MODEL
+
+#if defined(VERTEX) ///////////////////////////////////////////////////
+
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNormals;
+
+uniform mat4 uWorldViewProjectionMatrix;
+
+uniform vec4 plane = vec4(0.0, 1.0, 0.0, 1.0);
+
+out vec3 FragPos;
+out vec3 vNormals;
+
+void main() {
+	gl_Position = uWorldViewProjectionMatrix * vec4(aPos, 1.0);
+	FragPos = aPos;
+	gl_ClipDistance[0] = dot(vec4(aPos, 1.0), plane);
+	vNormals = mat3(transpose(inverse(mat4(1.0)))) * aNormals;
+}
+
+#elif defined(FRAGMENT) ///////////////////////////////////////////////
+
+layout(location = 0) out vec4 oColor;
+
+in vec3 FragPos;
+in vec3 vNormals;
+
+uniform vec3 faceColor;
+
+//move
+uniform vec3 lightPos = vec3(5.0, 15.0, 5.0);
+uniform vec3 lightColor = vec3(1.0, 1.0, 1.0);
+
+void main() {
+	// ambient
+	float ambientStrength = 0.1;
+	vec3 ambient = ambientStrength * lightColor;
+	
+	vec3 norm = normalize(vNormals);
+	vec3 lightDir = normalize(lightPos - FragPos);
+	float diff = max(dot(norm, lightDir), 0.0);
+	vec3 diffuse = diff * lightColor;
+
+	vec3 result = max(min((ambient + diffuse), 0.9), 0.3) * faceColor;
+
+	oColor = vec4(result, 1.0);
+}
+
+#endif
+#endif
+
+#ifdef WATER_SHADER
+
+#if defined(VERTEX) ///////////////////////////////////////////////////
+
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec2 aTexCoord;
+
+uniform mat4 uWorldViewProjectionMatrix;
+uniform mat4 uWorldMatrix;
+
+uniform vec3 lightPos = vec3(5.0, 15.0, 5.0);
+uniform vec3 cameraPos;
+
+uniform float tiling = 15.0;
+
+out vec4 clipSpace;
+out vec2 vTexCoord;
+out vec3 cameraVector;
+out vec3 lightVector;
+
+void main() {
+	vec4 worldPosition = uWorldMatrix * vec4(aPos, 1.0);
+	clipSpace = uWorldViewProjectionMatrix * worldPosition;
+	gl_Position = clipSpace;
+	vTexCoord = (aTexCoord / 2.0 + 0.5) * tiling;
+	cameraVector = cameraPos - worldPosition.xyz;
+	lightVector = worldPosition.xyz - lightPos;
+}
+
+#elif defined(FRAGMENT) ///////////////////////////////////////////////
+
+layout(location = 0) out vec4 oColor;
+
+in vec4 clipSpace;
+in vec2 vTexCoord;
+in vec3 cameraVector;
+in vec3 lightVector;
+
+uniform sampler2D reflectionTex;
+uniform sampler2D refractionTex;
+uniform sampler2D dudvMap;
+uniform sampler2D normalMap;
+uniform sampler2D depthMap;
+
+uniform vec3 lightColor = vec3(1.0, 1.0, 1.0);
+
+uniform float move = 0.0;
+uniform float waveStrength = 0.01;
+
+uniform float shineDamper = 20.0;
+uniform float reflectivity = 0.6;
+
+void main() {
+
+	vec2 ndc = (clipSpace.xy/clipSpace.w) / 2.0 + 0.5;
+	vec2 reflectTexCoords = vec2(ndc.x, -ndc.y);
+	vec2 refractTexCoords = vec2(ndc.x,  ndc.y);
+
+	float near = 0.1;
+	float far = 1000.0;
+	float depth = texture(depthMap, refractTexCoords).r;
+	float floorDistance = 2.0 * near * far / (far + near - (2.0 * depth - 1.0) * (far - near));
+
+	depth = gl_FragCoord.z;
+	float waterDistance = 2.0 * near * far / (far + near - (2.0 * depth - 1.0) * (far - near));
+	float waterDepth = floorDistance - waterDistance;
+
+	vec2 distortedTexCoords = texture(dudvMap, vec2(vTexCoord.x + move, vTexCoord.y)).rg * 0.1;
+	distortedTexCoords = vTexCoord + vec2(distortedTexCoords.x, distortedTexCoords.y + move);
+	vec2 distortion = (texture(dudvMap, distortedTexCoords).rg * 2.0 - 1.0) * waveStrength * clamp(waterDepth / 20.0, 0.0, 1.0);
+
+	reflectTexCoords += distortion;
+	reflectTexCoords.x = clamp(reflectTexCoords.x, 0.001, 0.999);
+	reflectTexCoords.y = clamp(reflectTexCoords.y, -0.999, -0.001);
+
+	refractTexCoords += distortion;
+	refractTexCoords = clamp(refractTexCoords, 0.001, 0.999);
+
+	vec4 reflectCol = texture(reflectionTex, reflectTexCoords);
+	vec4 refractCol = texture(refractionTex, refractTexCoords);
+
+	vec4 normalMapColor = texture(normalMap, distortedTexCoords);
+	vec3 normal = normalize(vec3(normalMapColor.r * 2.0 - 1.0, normalMapColor.b, normalMapColor.g * 2.0 - 1.0));
+
+	vec3 viewVector = normalize(cameraVector);
+	float refractiveFactor = dot(viewVector, vec3(0.0, 1.0, 0.0));
+	refractiveFactor = pow(refractiveFactor, 10.0);
+
+	vec3 reflectedLight = reflect(normalize(lightVector), normal);
+	float specular = max(dot(reflectedLight, viewVector), 0.0);
+	specular = pow(specular, shineDamper);
+	vec3 specularHighlights = lightColor * specular * reflectivity * clamp(waterDepth / 5.0, 0.0, 1.0);
+
+	oColor = mix(reflectCol, refractCol, refractiveFactor);
+	oColor = mix(oColor, vec4(0.0, 1.0, 1.0, 1.0), 0.2) + vec4(specularHighlights, 0.0);
+	oColor.a = clamp(waterDepth / 0.2, 0.0, 1.0);
 }
 
 #endif
