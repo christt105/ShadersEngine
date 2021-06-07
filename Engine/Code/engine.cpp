@@ -1137,16 +1137,6 @@ void Render(App* app)
     }
 }
 
-/// <summary>
-/// 
-/// </summary>
-/// <param name="cam"></param>
-/// <param name="colorAttach"></param>
-/// <param name="type">0 reflection, 1 refraction</param>
-void RenderWaterScene(const Camera& cam, GLenum colorAttach, int type) {
-    
-}
-
 void WaterTile::Render() const
 {
     static unsigned int quadVAO = 0;
