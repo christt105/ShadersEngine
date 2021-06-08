@@ -354,11 +354,11 @@ void Init(App* app)
     app->lights.push_back(Light(LightType::LightType_Point, vec3(0.0, 1.0, 1.0), vec3(0.0, -1.0, 1.0), vec3(12.f, 2.f, 2.f), 4.f));*/
 
     app->mode = Mode::Mode_Deferred;
-    //app->island = LoadModel(app, "WaterScene/low_poly_nature/2/volcano.obj");
-    ////app->wTexDudv = LoadTexture2D(app, "WaterScene/waterDUDV.png", GL_REPEAT);
-    //app->wTexDudv = LoadTexture2D(app, "WaterScene/dudvMap4.jpg", GL_REPEAT);
-    //app->wTexNormalMap = LoadTexture2D(app, "WaterScene/normalMap.png", GL_REPEAT);
-    //app->water = WaterTile(vec3(4.7f, 2.534f, 2.5f), vec2(4.f, 6.f));
+    app->island = LoadModel(app, "WaterScene/volcano.obj");
+    app->wTexDudvSelected = app->wTexDudv1 = LoadTexture2D(app, "WaterScene/waterDUDV.png", GL_REPEAT);
+    app->wTexDudv2 = LoadTexture2D(app, "WaterScene/waterDUDV2.jpg", GL_REPEAT);
+    app->wTexNormalMap = LoadTexture2D(app, "WaterScene/normalMap.png", GL_REPEAT);
+    app->water = WaterTile(vec3(4.7f, 2.534f, 2.5f), vec2(4.f, 6.f));
 
     //Framebuffer
     for (int i = 0; i < (int)FrameBuffer::MAX; ++i) {
@@ -560,6 +560,10 @@ void Gui(App* app)
         ImGui::DragFloat("Shine Damper", &app->wuShineDamper, 0.5f);
         ImGui::DragFloat("Reflectivity", &app->wuReflectivity, 0.001f);
         ImGui::DragFloat("Tiling", &app->tiling, 0.5f);
+        bool isFirst = (app->wTexDudvSelected == app->wTexDudv1);
+        if (ImGui::Checkbox("Use DUDV map 2", &isFirst)) {
+            app->wTexDudvSelected = (app->wTexDudvSelected == app->wTexDudv1) ? app->wTexDudv2 : app->wTexDudv1;
+        }
 
         ImGui::PopID();
     }
@@ -1154,7 +1158,7 @@ void Render(App* app)
             glBindTexture(GL_TEXTURE_2D, app->wTexRefraction);
             glUniform1i(app->WaterProgramIdx_uDudvTex, 2);
             glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, app->textures[app->wTexDudv].handle);
+            glBindTexture(GL_TEXTURE_2D, app->textures[app->wTexDudvSelected].handle);
             glUniform1i(app->WaterProgramIdx_uNormalMapTex, 3);
             glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, app->textures[app->wTexNormalMap].handle);

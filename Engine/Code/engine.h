@@ -353,7 +353,10 @@ struct App
     GLuint wDepthReflection = 0U;
     GLuint wDepthRefraction = 0U;
 
-    GLuint wTexDudv = 0U;
+    GLuint wTexDudv1 = 0U;
+    GLuint wTexDudv2 = 0U;
+    GLuint wTexDudvSelected = 0U;
+
     GLuint wTexNormalMap = 0U;
 
     GLuint wFboBase = 0U;
