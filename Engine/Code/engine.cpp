@@ -331,11 +331,10 @@ void Init(App* app)
     //u32 cliff = LoadModel(app, "AK47/AK47.obj");
     //u32 cliff = LoadModel(app, "3/Models_OBJ/Terrain_50000.obj");
     //u32 cliff = LoadModel(app, "Cubo/Cube_obj.obj");
-    u32 cliff = LoadModel(app, "Plane/Plane.obj");
-    u32 cliff2 = LoadModel(app, "Plane2/Plane2.obj");
 
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), glm::vec3(-3.f, 0.f, 0.f)), cliff));
-    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), glm::vec3(3.f, 0.f, 0.f)), cliff2));
+    app->cliff = Entity(glm::mat4(1.f), LoadModel(app, "Plane/Plane.obj"));
+    app->box = Entity(glm::mat4(1.f), LoadModel(app, "Plane2/Plane2.obj"));
+
     /*app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 5.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 10.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 1.f)), pat));
@@ -568,6 +567,12 @@ void Gui(App* app)
         }
 
         ImGui::PopID();
+    }
+    else if (app->mode == Mode::Mode_Forward) {
+        ImGui::Separator();
+        ImGui::Text("Relief");
+        if (ImGui::Button("Change Relief Model"))
+            app->showCliff = !app->showCliff;
     }
 
     ImGui::Separator();
@@ -806,51 +811,12 @@ void Render(App* app)
 
         for (auto& e : app->entities) {
 
-            Model& model = app->models[e.model];
-            Mesh& mesh = app->meshes[model.meshIdx];
-
-            glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
-
-            AlignHead(app->cBuffer, app->uniformBlockAligment);
-            e.localParamsOffset = app->cBuffer.head;
-            PushMat4(app->cBuffer, e.mat);
-            PushMat4(app->cBuffer, viewMat);
-            
-           
-
-            e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
-
-            glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);
-            glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(1), app->cBuffer.handle, e.localParamsOffset, e.localParamsSize);
-
-            for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
-                GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
-                glBindVertexArray(vao);
-
-                u32 submeshMaterialIdx = model.materialIdx[i];
-                Material& submeshmaterial = app->materials[submeshMaterialIdx];
-                glActiveTexture(GL_TEXTURE0);
-                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
-                glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
-
-                glActiveTexture(GL_TEXTURE2);
-                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), submeshmaterial.hasBumpText);
-                if (submeshmaterial.hasBumpText) {
-                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.bumpTextureIdx].handle);
-                    glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
-                }
-
-                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), submeshmaterial.hasNormalText);
-                glActiveTexture(GL_TEXTURE1);
-                if (submeshmaterial.hasNormalText) {
-                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.normalsTextureIdx].handle);
-                    glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
-                }
-
-                Submesh& submesh = mesh.submeshes[i];
-                glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
-            }
+            DrawEntity(app, e, texturedMeshProgram);
         }
+        
+        DrawEntity(app, (app->showCliff) ? app->cliff : app->box, texturedMeshProgram);
+
+
         UnmapBuffer(app->cBuffer);
 
         glBindFramebuffer(GL_FRAMEBUFFER, NULL);
@@ -1200,6 +1166,54 @@ void Render(App* app)
     }
     default:
         break;
+    }
+}
+
+void DrawEntity(App* app, Entity& e, Program& texturedMeshProgram)
+{
+    Model& model = app->models[e.model];
+    Mesh& mesh = app->meshes[model.meshIdx];
+
+    glm::mat4 viewMat = app->camera.GetViewMatrix({ app->displaySize.x, app->displaySize.y });
+
+    AlignHead(app->cBuffer, app->uniformBlockAligment);
+    e.localParamsOffset = app->cBuffer.head;
+    PushMat4(app->cBuffer, e.mat);
+    PushMat4(app->cBuffer, viewMat);
+
+
+
+    e.localParamsSize = app->cBuffer.head - e.localParamsOffset;
+
+    glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(0), app->cBuffer.handle, app->globlaParamsOffset, app->globalParamsSize);
+    glBindBufferRange(GL_UNIFORM_BUFFER, BINDING(1), app->cBuffer.handle, e.localParamsOffset, e.localParamsSize);
+
+    for (u32 i = 0; i < mesh.submeshes.size(); ++i) {
+        GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
+        glBindVertexArray(vao);
+
+        u32 submeshMaterialIdx = model.materialIdx[i];
+        Material& submeshmaterial = app->materials[submeshMaterialIdx];
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
+        glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
+
+        glActiveTexture(GL_TEXTURE2);
+        glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), submeshmaterial.hasBumpText);
+        if (submeshmaterial.hasBumpText) {
+            glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.bumpTextureIdx].handle);
+            glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
+        }
+
+        glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), submeshmaterial.hasNormalText);
+        glActiveTexture(GL_TEXTURE1);
+        if (submeshmaterial.hasNormalText) {
+            glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.normalsTextureIdx].handle);
+            glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
+        }
+
+        Submesh& submesh = mesh.submeshes[i];
+        glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
     }
 }
 

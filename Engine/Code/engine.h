@@ -141,10 +141,11 @@ static std::string ModeToString(Mode m) {
 
 struct Entity {
     glm::mat4 mat = glm::mat4(1.0f);
-    u32 model;
-    u32 localParamsOffset;
-    u32 localParamsSize;
+    u32 model = 0U;
+    u32 localParamsOffset = 0U;
+    u32 localParamsSize = 0U;
 
+    Entity() {}
     Entity(const glm::mat4& m, u32 mod) : mat(m), model(mod){}
 };
 
@@ -322,6 +323,11 @@ struct App
     GLuint globalParamsSize;
     int uniformBlockAligment;
 
+    //Relief
+    Entity cliff;
+    Entity box;
+    bool showCliff = true;
+
     //WATER =======================
     u32 baseModelProgramIdx;
     u32 waterProgramIdx;
@@ -388,6 +394,8 @@ void Gui(App* app);
 void Update(App* app);
 
 void Render(App* app);
+
+void DrawEntity(App* app, Entity& e, Program& texturedMeshProgram);
 
 void renderQuad();
 void renderCube();
