@@ -831,14 +831,19 @@ void Render(App* app)
                 glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.albedoTextureIdx].handle);
                 glUniform1i(app->texturedMeshProgramIdx_uTexture, 0);
 
-                glActiveTexture(GL_TEXTURE1);
-                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.normalsTextureIdx].handle);
-                glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
-
                 glActiveTexture(GL_TEXTURE2);
-                glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.bumpTextureIdx].handle);
-                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
+                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasBumpMap"), submeshmaterial.hasBumpText);
+                if (submeshmaterial.hasBumpText) {
+                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.bumpTextureIdx].handle);
+                    glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uBumpTexture"), 2);
+                }
 
+                glUniform1i(glGetUniformLocation(texturedMeshProgram.handle, "uhasNormalMap"), submeshmaterial.hasNormalText);
+                glActiveTexture(GL_TEXTURE1);
+                if (submeshmaterial.hasNormalText) {
+                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshmaterial.normalsTextureIdx].handle);
+                    glUniform1i(app->texturedMeshProgramIdx_uTexture3, 1);
+                }
 
                 Submesh& submesh = mesh.submeshes[i];
                 glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);

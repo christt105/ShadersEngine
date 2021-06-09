@@ -130,10 +130,10 @@ in mat3 vworldMat;
 
 uniform sampler2D uAlbedoTexture;
 
-uniform unsigned int uhasNormalMap;
+uniform int uhasNormalMap;
 uniform sampler2D uNormalTexture;
 
-uniform unsigned int uhasBumpMap;
+uniform int uhasBumpMap;
 uniform sampler2D uBumpTexture;
 
 layout(location = 0) out vec4 oColor;
@@ -147,17 +147,18 @@ void main() {
 	vec3 result = vec3(0.0,0.0,0.0);
 	 vec2 tCoords = vTexCoord;
 
+	 if(uhasBumpMap == 1){
 		tCoords = reliefMapping(tCoords, vViewDir);
 		if(tCoords.x > 1.0 || tCoords.y > 1.0 || tCoords.x < 0.0 || tCoords.y < 0.0)
 			discard;
-	
+	}
 
 	vec3 normals = vNormals;
-
+	if(uhasNormalMap == 1){
 		normals = normalize( texture(uNormalTexture, tCoords).rgb);
         normals = normals * 2.0 - 1.0;
 		normals = normalize(inverse(TBN) * normals);
-
+		}
 	
 
 	for(int i = 0; i < uLightCount; ++i)
@@ -216,7 +217,7 @@ vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir,
 }
 vec2 reliefMapping(vec2 texCoords, vec3 viewDir)
 {
-	float bumpiness = 0.5;
+	float bumpiness = 0.25;
 	const float minLayers = 2.0;
 	const float maxLayers = 32.0;
 	viewDir = normalize(TBN * viewDir);
@@ -334,10 +335,10 @@ in mat3 worldViewMatrix;
 
 uniform sampler2D uAlbedoTexture;
 
-uniform unsigned int uhasNMap;
+uniform int uhasNMap;
 uniform sampler2D uNormalTexture;
 
-uniform unsigned int uhasBumpMap;
+uniform int uhasBumpMap;
 uniform sampler2D uBumpTexture;
 
 layout(location = 0) out vec4 oColor;
@@ -352,6 +353,7 @@ void main() {
 	
 	if(uhasBumpMap == 1){
 		tCoords = reliefMapping(tCoords, vViewDir);
+
 	}
 	
 	vec3 normals = vNormals;
