@@ -332,8 +332,10 @@ void Init(App* app)
     //u32 cliff = LoadModel(app, "3/Models_OBJ/Terrain_50000.obj");
     //u32 cliff = LoadModel(app, "Cubo/Cube_obj.obj");
     u32 cliff = LoadModel(app, "Plane/Plane.obj");
+    u32 cliff2 = LoadModel(app, "Plane2/Plane2.obj");
 
-    app->entities.push_back(Entity(glm::mat4(1.f), cliff));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), glm::vec3(-3.f, 0.f, 0.f)), cliff));
+    app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), glm::vec3(3.f, 0.f, 0.f)), cliff2));
     /*app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 5.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(0.0f, 0.1f, 10.f)), pat));
     app->entities.push_back(Entity(glm::translate(glm::mat4(1.f), vec3(-12.1f, 0.1f, 1.f)), pat));
