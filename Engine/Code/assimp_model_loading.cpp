@@ -159,6 +159,16 @@ void ProcessAssimpMaterial(App* app, aiMaterial *material, Material& myMaterial,
         myMaterial.hasBumpText = 1;
         myMaterial.bumpTextureIdx = LoadTexture2D(app, filepath.str);
     }
+    else {
+        String filename = MakeString("Height.png");
+        String filepath = MakePath(directory, filename);
+
+        myMaterial.bumpTextureIdx = LoadTexture2D(app, filepath.str);
+        if (myMaterial.bumpTextureIdx != UINT32_MAX) {
+            myMaterial.hasBumpText = 1;
+        }
+
+    }
 
     //myMaterial.createNormalFromBump();
 }

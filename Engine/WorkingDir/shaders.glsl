@@ -73,22 +73,25 @@ out vec3 vPos;
 out vec3 vNormals;
 out vec3 vViewDir;
 out mat3 TBN;
+out mat3 vworldMat;
 
 void main() {
 
 	gl_Position = uWorldViewProjectionMatrix * uWorldMatrix * vec4(aPos, 1.0);
 
-	vPos = vec3(uWorldMatrix * vec4(aPos,1.0));
-	vNormals = mat3(transpose(inverse(uWorldMatrix))) * aNormals;
+	vNormals = mat3(uWorldMatrix) * aNormals;
 	vTexCoord = aTexCoord;
 
-	vViewDir = uCameraPos - aPos;
 
-	vec3 T = normalize(vec3(uWorldMatrix * vec4(aTangents,   0.0)));
-    vec3 B = normalize(vec3(uWorldMatrix * vec4(aBiTangents, 0.0)));
-    vec3 N = normalize(vec3(uWorldMatrix * vec4(vNormals,    0.0)));
+	vec3 T = normalize(vec3( uWorldMatrix * vec4(aTangents,   0.0)));
+    vec3 B = normalize(vec3( uWorldMatrix * vec4(aBiTangents, 0.0)));
+    vec3 N = normalize(vec3( uWorldMatrix * vec4(vNormals,    0.0)));
 
-    TBN = mat3(T,B,N);
+    TBN = transpose(mat3(T,B,N));
+	
+	vViewDir =  normalize((uCameraPos - aPos));
+	vworldMat = mat3(uWorldMatrix);
+	vPos = vec3(uWorldMatrix * vec4(aPos,1.0));
 }
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
@@ -109,7 +112,7 @@ struct Light{
 //---------------------------Function declaration--------------------------------------
 vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords);
 vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir, vec2 texCoords);
-
+vec2 reliefMapping(vec2 texCoords, vec3 viewDir);
 
 layout(binding = 0, std140) uniform GlobalParms
 {
@@ -123,9 +126,15 @@ in vec3 vPos;
 in vec3 vNormals;
 in vec3 vViewDir;
 in mat3 TBN;
+in mat3 vworldMat;
 
 uniform sampler2D uAlbedoTexture;
-uniform sampler2D normalMap;
+
+uniform unsigned int uhasNormalMap;
+uniform sampler2D uNormalTexture;
+
+uniform unsigned int uhasBumpMap;
+uniform sampler2D uBumpTexture;
 
 layout(location = 0) out vec4 oColor;
 layout(location = 1) out vec4 oNormals;
@@ -136,23 +145,35 @@ layout(location = 4) out vec4 oPosition;
 void main() {
 
 	vec3 result = vec3(0.0,0.0,0.0);
+	 vec2 tCoords = vTexCoord;
 
-	vec3 normals = normalize(TBN * vNormals);
+		tCoords = reliefMapping(tCoords, vViewDir);
+		if(tCoords.x > 1.0 || tCoords.y > 1.0 || tCoords.x < 0.0 || tCoords.y < 0.0)
+			discard;
+	
+
+	vec3 normals = vNormals;
+
+		normals = normalize( texture(uNormalTexture, tCoords).rgb);
+        normals = normals * 2.0 - 1.0;
+		normals = normalize(inverse(TBN) * normals);
+
+	
 
 	for(int i = 0; i < uLightCount; ++i)
 	{			
 		if(uLight[i].type == 0)
-			result += CalculateDirectionalLight(uLight[i], vNormals, normalize(vViewDir), vTexCoord);
+			result += CalculateDirectionalLight(uLight[i], normals,  vViewDir, tCoords);
 		else{
 			if(uLight[i].intensity > 0){
-			result += CalculatePointLight(uLight[i], vNormals, vPos, normalize(vViewDir), vTexCoord);
+			result += CalculatePointLight(uLight[i], normals, vPos, vViewDir, tCoords);
 			} 
 		}
 	}
 
-	oColor 		= vec4(result,1.0) + texture(uAlbedoTexture, vTexCoord) * 0.2;
-	oNormals 	= vec4(vNormals, 1.0);
-	oAlbedo		= texture(uAlbedoTexture, vTexCoord);
+	oColor 		= vec4(result, 1.0) * texture(uAlbedoTexture, tCoords);
+	oNormals 	= vec4(normals, 1.0);
+	oAlbedo		= texture(uAlbedoTexture, tCoords);
 	oLight		= vec4(result, 1.0);
 	oPosition   = vec4(vPos, 1.0);
 }
@@ -167,7 +188,7 @@ vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 tex
     vec3 diffuse = ambient *  diff;
     
     // Specular
-    vec3 halfwayDir = normalize(lightDir + view_dir); 
+    vec3 halfwayDir = normalize(lightDir + TBN * view_dir); 
     float spec = pow(max(dot(normal, halfwayDir), 0.0), 0.0) * 0.01;
 
     vec3 specular = vec3(0);
@@ -181,19 +202,57 @@ vec3 CalculatePointLight(Light light, vec3 normal, vec3 frag_pos, vec3 view_dir,
     // Ambient
      vec3 ambient = light.color;
     // diffuse shadi
-    vec3 lightDir = normalize(light.position - frag_pos);
+    vec3 lightDir = normalize((TBN) * (light.position - frag_pos));
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = ambient * diff;
      // Specul
-    vec3 halfwayDir = normalize(lightDir + view_dir);  
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 20.1);
+    vec3 halfwayDir =normalize(lightDir + view_dir);  
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), 10.1);
     vec3 specular = light.color * spec;
     // attenuati
-    float distance = length(light.position - frag_pos);
+    float distance = length(TBN * (light.position - frag_pos));
     float attenuation = 1.0 / (1.0 + light.linear * distance + light.quadratic * distance * distance);      
-	return (diffuse + specular) * light.intensity * attenuation;
+	return (diffuse + specular + ambient) * light.intensity * attenuation;
 }
+vec2 reliefMapping(vec2 texCoords, vec3 viewDir)
+{
+	float bumpiness = 0.5;
+	const float minLayers = 2.0;
+	const float maxLayers = 32.0;
+	viewDir = normalize(TBN * viewDir);
+	
+	float numLayers= mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
 
+    // the amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy * bumpiness; 
+    vec2 deltaTexCoords = P / numLayers;
+
+	vec2  currentTexCoords     = texCoords;
+	float currentDepthMapValue = texture(uBumpTexture, currentTexCoords).r;
+	  
+	while(currentLayerDepth < currentDepthMapValue)
+	{
+	    // shift texture coordinates along direction of P
+	    currentTexCoords -= deltaTexCoords;
+	    // get depthmap value at current texture coordinates
+	    currentDepthMapValue = texture(uBumpTexture, currentTexCoords).r;  
+	    // get depth of next layer
+	    currentLayerDepth += layerDepth;  
+	}
+	vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+	float afterDepth  = currentDepthMapValue - currentLayerDepth;
+	float beforeDepth = texture(uBumpTexture, prevTexCoords).r - currentLayerDepth + layerDepth;
+ 
+	// interpolation of texture coordinates
+	float weight = afterDepth / (afterDepth - beforeDepth);
+	vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+
+	return finalTexCoords;   
+}
 #endif
 #endif
 
