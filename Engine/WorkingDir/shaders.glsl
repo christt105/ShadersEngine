@@ -335,7 +335,7 @@ in mat3 worldViewMatrix;
 
 uniform sampler2D uAlbedoTexture;
 
-uniform int uhasNMap;
+uniform int uhasNormalMap;
 uniform sampler2D uNormalTexture;
 
 uniform int uhasBumpMap;
@@ -358,7 +358,7 @@ void main() {
 	
 	vec3 normals = vNormals;
 
-	if(uhasNMap == 0){
+	if(uhasNormalMap == 1){
 		normals = texture(uNormalTexture, tCoords).rgb;
         normals = normals * 2.0 - 1.0;
 		normals = normalize(inverse(transpose(TBN)) * normals);
@@ -369,7 +369,7 @@ void main() {
 	oNormals 	= vec4(normals, 1.0);
 	oAlbedo		= texture(uAlbedoTexture, tCoords);
 	oLight		= vec4(1.0);
-	oPosition   = vec4(transpose(TBN) * vPos, 1.0);
+	oPosition   = vec4( vPos, 1.0);
 	gl_FragDepth = gl_FragCoord.z - 0.1;
 }
 
