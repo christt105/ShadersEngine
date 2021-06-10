@@ -568,7 +568,7 @@ void Gui(App* app)
 
 		ImGui::PopID();
 	}
-	else if (app->mode == Mode::Mode_Forward) {
+	else if (app->mode == Mode::Mode_Forward || app->mode == Mode::Mode_Deferred) {
 		ImGui::Separator();
 		ImGui::Text("Relief");
 		if (ImGui::Button("Change Relief Model"))
@@ -809,12 +809,12 @@ void Render(App* app)
 		}
 		app->globalParamsSize = app->cBuffer.head - app->globlaParamsOffset;
 
-		DrawEntity(app, (app->showCliff) ? app->cliff : app->box, texturedMeshProgram);
 		for (auto& e : app->entities) {
 
 			DrawEntity(app, e, texturedMeshProgram);
 		}
 
+		DrawEntity(app, (app->showCliff) ? app->cliff : app->box, texturedMeshProgram);
 
 
 		UnmapBuffer(app->cBuffer);
@@ -908,6 +908,7 @@ void Render(App* app)
 				Submesh& submesh = mesh.submeshes[i];
 				glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)submesh.indexOffset);
 			}
+			DrawEntity(app, (app->showCliff) ? app->cliff : app->box, texturedMeshProgram);
 		}
 
 

@@ -304,7 +304,7 @@ void main() {
 
 	vViewDir = uCameraPos - vPos;
 
-    TBN = mat3(T,B,N);
+    TBN = transpose(mat3(T,B,N));
 	
 
 }
@@ -353,15 +353,18 @@ void main() {
 	
 	if(uhasBumpMap == 1){
 		tCoords = reliefMapping(tCoords, vViewDir);
-
+		if(tCoords.x > 1.0 || tCoords.y > 1.0 || tCoords.x < 0.0 || tCoords.y < 0.0)
+			discard;
 	}
 	
 	vec3 normals = vNormals;
-
+	vec3 auxvPos = vPos;
 	if(uhasNormalMap == 1){
 		normals = texture(uNormalTexture, tCoords).rgb;
         normals = normals * 2.0 - 1.0;
-		normals = normalize(inverse(transpose(TBN)) * normals);
+		normals = normalize(inverse(TBN) * normals);
+
+		auxvPos = TBN * auxvPos;
 	}
 
 
@@ -369,40 +372,49 @@ void main() {
 	oNormals 	= vec4(normals, 1.0);
 	oAlbedo		= texture(uAlbedoTexture, tCoords);
 	oLight		= vec4(1.0);
-	oPosition   = vec4( vPos, 1.0);
+	oPosition   = vec4( auxvPos, 1.0);
 	gl_FragDepth = gl_FragCoord.z - 0.1;
 }
 
 // Parallax occlusion mapping aka. relief mapping
 vec2 reliefMapping(vec2 texCoords, vec3 viewDir)
 {
-	int numSteps = 32;
+	float bumpiness = 0.25;
+	const float minLayers = 2.0;
+	const float maxLayers = 32.0;
+	viewDir =  normalize(TBN * viewDir);
+	
+	float numLayers= mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
 
-	float bumpiness = 25;
-	// Compute the view ray in texture space
-	vec3 rayTexspace = transpose(TBN) * inverse(worldViewMatrix) * viewDir;
-	// Increment
-	vec3 rayIncrementTexspace;
-	rayIncrementTexspace.xy = bumpiness * rayTexspace.xy / abs(rayTexspace.z * textureSize(uBumpTexture,0).x);
-	rayIncrementTexspace.z = 1.0/numSteps;
-	// Sampling state
-	vec3 samplePositionTexspace = vec3(texCoords, 0.0);
-	float sampledDepth = 1.0 - texture(uBumpTexture, samplePositionTexspace.xy).r;
-	// Linear search
-	for (int i = 0; i < numSteps && samplePositionTexspace.z < sampledDepth; ++i)
+    // the amount to shift the texture coordinates per layer (from vector P)
+    vec2 P = viewDir.xy* bumpiness; 
+    vec2 deltaTexCoords = P / numLayers;
+
+	vec2  currentTexCoords     = texCoords;
+	float currentDepthMapValue = texture(uBumpTexture, currentTexCoords).r;
+	  
+	while(currentLayerDepth < currentDepthMapValue)
 	{
-		samplePositionTexspace += rayIncrementTexspace;
-		sampledDepth = 1.0 - texture(uBumpTexture, samplePositionTexspace.xy).r;
+	    // shift texture coordinates along direction of P
+	    currentTexCoords -= deltaTexCoords;
+	    // get depthmap value at current texture coordinates
+	    currentDepthMapValue = texture(uBumpTexture, currentTexCoords).r;  
+	    // get depth of next layer
+	    currentLayerDepth += layerDepth;  
 	}
-    // get depth after and before collision for linear interpolation
-    float afterDepth  = samplePositionTexspace.z - sampledDepth;
-    float beforeDepth = texture(uBumpTexture, samplePositionTexspace.xy).r - samplePositionTexspace.z + sampledDepth;
+	vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+	float afterDepth  = currentDepthMapValue - currentLayerDepth;
+	float beforeDepth = texture(uBumpTexture, prevTexCoords).r - currentLayerDepth + layerDepth;
  
-    // interpolation of texture coordinates
-    float weight = afterDepth / (afterDepth - beforeDepth);
-    vec2 finalTexCoords = samplePositionTexspace.xy * weight + samplePositionTexspace.xy * (1.0 - weight);
+	// interpolation of texture coordinates
+	float weight = afterDepth / (afterDepth - beforeDepth);
+	vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
 
-    return finalTexCoords;
+	return finalTexCoords;   
 }
 
 #endif
@@ -497,11 +509,11 @@ void main() {
 			}
 		}
 		else {
-			result = vec3(0.2);
+			result = vec3(0.5);
 		}
 	}
 
-	oColor = vec4(result, 1.0) * texture(uAlbedoTexture, vTexCoord);
+	oColor = vec4(result * diffuseCol, 1.0);
 }
 
 vec3 CalculateDirectionalLight(Light light, vec3 normal, vec3 view_dir, vec2 texCoords) {
